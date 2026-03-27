@@ -1,0 +1,13 @@
+---
+description: Minimal standards for plain PHP coursework project
+alwaysApply: true
+---
+
+# Plain PHP Coursework Rule
+
+- Keep implementation plain PHP and easy to explain in team discussions.
+- Prefer small functions and explicit control flow over heavy abstractions.
+- Validate all request input server-side before DB writes.
+- Enforce role/ownership checks in every action endpoint.
+- Escape all rendered user content with `e()`.
+- Keep docs updated in `docs/` when behavior changes.
