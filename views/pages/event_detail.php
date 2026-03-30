@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../includes/auth_guard.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/policy.php';
 require_once __DIR__ . '/../../models/EventModel.php';
 require_once __DIR__ . '/../../models/RsvpModel.php';
 require_once __DIR__ . '/../../models/CommentModel.php';
@@ -27,10 +28,12 @@ if (!$event) {
     return;
 }
 
-$isAdmin          = current_user_role() === 'admin';
-$isOrganizerOwner = (current_user_id() ?? 0) === (int) $event['organizer_id'];
+$userId           = current_user_id() ?? 0;
+$isAdmin          = policy_is_admin();
+$isOrganizerOwner = policy_is_event_owner($userId, $event);
+$eventHasEnded    = has_datetime_passed((string) ($event['event_date'] ?? ''));
 
-if ((int) $event['is_verified'] !== 1 && !$isAdmin && !$isOrganizerOwner) {
+if (!can_view_event($userId, $event, null, true)) {
     http_response_code(403);
     ?>
     <section class="not-found">
@@ -91,15 +94,19 @@ $comments       = comment_get_by_event((int) $event['id']);
                 <?php if (current_user_id() === null): ?>
                     <p><a href="<?= e(url_for('login', ['redirect' => $_SERVER['REQUEST_URI'] ?? null])) ?>">Login</a> to leave feedback.</p>
                 <?php else: ?>
-                    <form action="<?= e(BASE_URL . 'actions/events/comment.php') ?>" method="post" style="margin-bottom: 1rem;">
-                        <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
-                        <input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>">
-                        <label>
-                            <span style="display:block;font-size:0.85rem;color:#6b7280;margin-bottom:0.25rem;">Your feedback</span>
-                            <input type="text" name="body" required>
-                        </label>
-                        <button type="submit" class="button subtle" style="margin-top:0.5rem;">Submit feedback</button>
-                    </form>
+                    <?php if (!$eventHasEnded && !$isAdmin && !$isOrganizerOwner): ?>
+                        <p>You can submit your feedback only after the event ends.</p>
+                    <?php else: ?>
+                        <form action="<?= e(BASE_URL . 'actions/events/comment.php') ?>" method="post" style="margin-bottom: 1rem;">
+                            <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
+                            <input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>">
+                            <label>
+                                <span style="display:block;font-size:0.85rem;color:#6b7280;margin-bottom:0.25rem;">Your feedback</span>
+                                <input type="text" name="body" maxlength="1000" required>
+                            </label>
+                            <button type="submit" class="button subtle" style="margin-top:0.5rem;">Submit feedback</button>
+                        </form>
+                    <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if (empty($comments)): ?>

@@ -27,7 +27,17 @@ if ($eventId <= 0) {
     redirect('admin_events');
 }
 
-$ok = event_set_verified($eventId, $newStatus);
+try {
+    $ok = event_set_verified($eventId, $newStatus);
+} catch (PDOException $e) {
+    log_exception($e, 'Toggle approval DB error');
+    set_flash('error', 'Something went wrong. Please try again.');
+    redirect('admin_events');
+} catch (Throwable $e) {
+    log_exception($e, 'Toggle approval error');
+    set_flash('error', 'Something went wrong. Please try again.');
+    redirect('admin_events');
+}
 
 set_flash($ok ? 'success' : 'error', $ok ? 'Event status updated.' : 'Could not update event status.');
 redirect('admin_events');

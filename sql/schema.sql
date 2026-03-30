@@ -26,9 +26,14 @@ CREATE TABLE events (
     event_date DATETIME NOT NULL,
     capacity INT UNSIGNED NOT NULL,
     is_verified TINYINT(1) NOT NULL DEFAULT 0,
+    edited_at DATETIME NULL,
+    edited_by INT UNSIGNED NULL,
+    edit_reason VARCHAR(500) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_events_organizer FOREIGN KEY (organizer_id) REFERENCES users(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_events_edited_by FOREIGN KEY (edited_by) REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE rsvps (
@@ -56,5 +61,17 @@ CREATE TABLE comments (
         ON DELETE CASCADE,
     CONSTRAINT fk_comments_parent FOREIGN KEY (parent_comment_id) REFERENCES comments(id)
         ON DELETE CASCADE
+);
+
+CREATE TABLE remember_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    selector VARCHAR(32) NOT NULL UNIQUE,
+    validator_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_remember_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+    INDEX idx_remember_tokens_expires_at (expires_at)
 );
 

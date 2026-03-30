@@ -113,6 +113,10 @@ $events      = $organizerId > 0 ? event_get_by_organizer($organizerId) : [];
                             Change image (optional)
                             <input type="file" name="image" accept="image/*">
                         </label>
+                        <label>
+                            Edit reason (optional)
+                            <input type="text" name="edit_reason" maxlength="500" placeholder="Why are you updating this event?">
+                        </label>
                         <button type="submit" class="button primary">Save Changes</button>
                     </form>
 

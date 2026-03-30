@@ -6,9 +6,15 @@ require_once __DIR__ . '/../../../includes/session.php';
 require_once __DIR__ . '/../../../includes/helpers.php';
 require_once __DIR__ . '/../../../includes/validation.php';
 require_once __DIR__ . '/../../../includes/auth_guard.php';
+require_once __DIR__ . '/../../../includes/policy.php';
 require_once __DIR__ . '/../../../models/EventModel.php';
 
 require_organizer();
+
+if (!can_create_event(current_user_id() ?? 0)) {
+    set_flash('error', 'You do not have permission to create events.');
+    redirect('event_feed');
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('dashboard');
@@ -25,14 +31,21 @@ $location    = request_string($_POST, 'location');
 $eventDate   = request_string($_POST, 'event_date');
 $capacity    = request_int($_POST, 'capacity');
 
-if (
-    !validate_required_string($title)
-    || !validate_required_string($location)
-    || !validate_event_datetime($eventDate)
-    || !validate_positive_int($capacity)
-) {
-    set_flash('error', 'Please fill in all required event fields.');
-    redirect('dashboard');
+foreach ([
+    validate_required($title, 'Title'),
+    validate_max_length($title, 150, 'Title'),
+    validate_required($location, 'Location'),
+    validate_max_length($location, 150, 'Location'),
+    validate_required($description, 'Description'),
+    validate_max_length($description, 5000, 'Description'),
+    validate_event_datetime_format($eventDate, 'Event date'),
+    validate_event_datetime_bounds($eventDate, 300, 60 * 60 * 24 * 365 * 10, 'Event date'),
+    validate_positive_int($capacity, 'Capacity'),
+] as $err) {
+    if ($err !== true) {
+        set_flash('error', $err);
+        redirect('dashboard');
+    }
 }
 
 // Optional image upload.
@@ -78,15 +91,25 @@ if (isset($_FILES['image']) && is_array($_FILES['image']) && ($_FILES['image']['
     $imagePath = 'uploads/' . $newName;
 }
 
-$eventId = event_create(
-    current_user_id() ?? 0,
-    $title,
-    $description,
-    $imagePath,
-    $location,
-    $eventDate,
-    $capacity
-);
+try {
+    $eventId = event_create(
+        current_user_id() ?? 0,
+        $title,
+        $description,
+        $imagePath,
+        $location,
+        $eventDate,
+        $capacity
+    );
+} catch (PDOException $e) {
+    log_exception($e, 'Create event DB write error');
+    set_flash('error', 'Something went wrong. Please try again.');
+    redirect('dashboard');
+} catch (Throwable $e) {
+    log_exception($e, 'Create event write error');
+    set_flash('error', 'Something went wrong. Please try again.');
+    redirect('dashboard');
+}
 
 if ($eventId === null) {
     set_flash('error', 'Could not create event. Please try again.');

@@ -50,3 +50,49 @@ function get_flashes(): array
     return $flashes;
 }
 
+/**
+ * Store form input data in session for one-time reuse after redirect.
+ */
+function set_old_input(array $input): void
+{
+    $_SESSION['old_input'] = $input;
+}
+
+/**
+ * Retrieve and clear old form input from session.
+ */
+function get_old_input(): array
+{
+    $oldInput = $_SESSION['old_input'] ?? [];
+    unset($_SESSION['old_input']);
+
+    return is_array($oldInput) ? $oldInput : [];
+}
+
+/**
+ * Check whether a datetime string is in the past (event has ended).
+ */
+function has_datetime_passed(string $dateTime): bool
+{
+    try {
+        $eventTime = new DateTimeImmutable($dateTime);
+        $now = new DateTimeImmutable('now');
+        return $eventTime <= $now;
+    } catch (Throwable) {
+        return false;
+    }
+}
+
+/**
+ * Log exception details (message + stack trace) server-side.
+ */
+function log_exception(Throwable $e, string $context = 'Application error'): void
+{
+    error_log(
+        $context
+        . ': ' . $e->getMessage()
+        . PHP_EOL
+        . $e->getTraceAsString()
+    );
+}
+
