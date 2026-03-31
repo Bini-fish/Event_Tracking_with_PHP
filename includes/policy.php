@@ -108,3 +108,23 @@ function can_create_event(int $userId, ?string $userRole = null): bool
     return $role === 'organizer' || $role === 'admin';
 }
 
+/**
+ * Can user manage RSVPs (approve/reject) for an event?
+ * Rule: admin OR organizer-owner.
+ */
+function can_manage_rsvps(int $userId, array $event, ?string $userRole = null): bool
+{
+    return policy_is_admin($userRole) || policy_is_event_owner($userId, $event);
+}
+
+/**
+ * Can user submit feedback for an event?
+ * Rule: must be logged in AND approved attendee AND event ended AND not already submitted.
+ * (Actual DB checks are handled in action; this only checks role-level access.)
+ */
+function can_submit_feedback(int $userId, ?string $userRole = null): bool
+{
+    return $userId > 0;
+}
+
+
