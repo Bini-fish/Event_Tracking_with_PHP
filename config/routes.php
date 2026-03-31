@@ -11,5 +11,6 @@ $routes = [
     'register'     => __DIR__ . '/../views/pages/register.php',
     'dashboard'    => __DIR__ . '/../views/pages/dashboard.php',
     'admin_events' => __DIR__ . '/../views/pages/admin_events.php',
+    'admin_users'  => __DIR__ . '/../views/pages/admin_users.php',
 ];
 
