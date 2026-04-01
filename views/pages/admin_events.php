@@ -141,6 +141,9 @@ try {
                         <div class="event-meta">
                             <span>📅 <?= e(date('d M Y, H:i', strtotime((string) $event['event_date']))) ?></span>
                             <span>📍 <?= e($event['location']) ?></span>
+                            <?php if (!empty($event['category'])): ?>
+                                <span>🏷️ <?= e($event['category']) ?></span>
+                            <?php endif; ?>
                             <span>👥 <?= $approved ?> RSVPs</span>
                             <?php if ($fb): ?>
                                 <span>⭐ <?= number_format($fb['avg_rating'], 1) ?> (<?= $fb['count'] ?>)</span>

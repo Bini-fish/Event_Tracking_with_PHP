@@ -88,14 +88,15 @@ function event_create(
     string $description,
     ?string $imagePath,
     string $location,
+    string $category,
     string $eventDate,
     string $eventEnd,
     int $capacity
 ): ?int {
     $pdo  = get_pdo();
     $stmt = $pdo->prepare(
-        'INSERT INTO events (organizer_id,title,description,image_path,location,event_date,event_end,capacity,is_verified,created_at)
-         VALUES (:org,:title,:desc,:img,:loc,:date,:end,:cap,0,NOW())'
+        'INSERT INTO events (organizer_id,title,description,image_path,location,category,event_date,event_end,capacity,is_verified,created_at)
+         VALUES (:org,:title,:desc,:img,:loc,:cat,:date,:end,:cap,0,NOW())'
     );
     $ok = $stmt->execute([
         ':org'   => $organizerId,
@@ -103,6 +104,7 @@ function event_create(
         ':desc'  => $description,
         ':img'   => $imagePath,
         ':loc'   => $location,
+        ':cat'   => $category !== '' ? $category : 'General',
         ':date'  => $eventDate,
         ':end'   => $eventEnd,
         ':cap'   => $capacity,
@@ -116,6 +118,7 @@ function event_update_basic(
     string $description,
     ?string $imagePath,
     string $location,
+    string $category,
     string $eventDate,
     string $eventEnd,
     int $capacity
@@ -124,7 +127,7 @@ function event_update_basic(
     $stmt = $pdo->prepare(
         'UPDATE events
          SET title=:title, description=:desc, image_path=:img,
-             location=:loc, event_date=:date, event_end=:end, capacity=:cap
+             location=:loc, category=:cat, event_date=:date, event_end=:end, capacity=:cap
          WHERE id=:id'
     );
     return $stmt->execute([
@@ -133,10 +136,25 @@ function event_update_basic(
         ':desc'  => $description,
         ':img'   => $imagePath,
         ':loc'   => $location,
+        ':cat'   => $category !== '' ? $category : 'General',
         ':date'  => $eventDate,
         ':end'   => $eventEnd,
         ':cap'   => $capacity,
     ]);
+}
+
+/**
+ * Get all distinct categories used across events (for filter dropdowns).
+ */
+function event_get_categories(): array
+{
+    $pdo  = get_pdo();
+    $stmt = $pdo->query(
+        "SELECT DISTINCT category FROM events
+         WHERE category IS NOT NULL AND category != ''
+         ORDER BY category ASC"
+    );
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: ['General'];
 }
 
 function event_delete(int $eventId, int $organizerId): bool

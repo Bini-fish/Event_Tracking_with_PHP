@@ -48,6 +48,12 @@ if (!$event) {
     redirect('event_feed');
 }
 
+// Gate 1: event must be approved before any RSVP is allowed.
+if ((int) ($event['is_verified'] ?? 0) !== 1) {
+    set_flash('error', 'RSVP is only available for approved events. This event is pending admin approval.');
+    redirect('event_detail', ['id' => $eventId]);
+}
+
 if (!can_rsvp_event($userId, $event, null, true)) {
     set_flash('error', 'This event is not open for RSVP.');
     redirect('event_feed');

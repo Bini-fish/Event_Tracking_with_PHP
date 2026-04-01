@@ -60,7 +60,8 @@ function can_view_event(
 
 /**
  * Can user RSVP to event?
- * Rule: same as view policy (verified OR admin OR organizer-owner).
+ * Rule: event MUST be verified (approved by admin).  No RSVP on unapproved events.
+ * Additionally, user must be able to view the event.
  */
 function can_rsvp_event(
     int $userId,
@@ -68,6 +69,11 @@ function can_rsvp_event(
     ?string $userRole = null,
     bool $requireVerification = true
 ): bool {
+    // RSVP always requires the event to be approved — no exceptions.
+    if ((int) ($event['is_verified'] ?? 0) !== 1) {
+        return false;
+    }
+
     return can_view_event($userId, $event, $userRole, $requireVerification);
 }
 
