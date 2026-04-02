@@ -101,10 +101,13 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap;">
         <div>
             <h1><?= e($event['title']) ?></h1>
-            <div class="event-meta" style="margin-top:var(--sp-3);">
-                <span>📅 <?= e($startFmt) ?><?= $endFmt ? ' – ' . e($endFmt) : '' ?></span>
-                <span>📍 <?= e($event['location']) ?></span>
-            </div>
+            <p class="event-meta" style="margin-top:var(--sp-3);">
+            <span>📅 <?= e($startFmt) ?><?= $endFmt ? ' – ' . e($endFmt) : '' ?></span>
+            <span>📍 <?= e($event['location']) ?></span>
+            <?php if (!empty($event['category'])): ?>
+                <span>🏷️ <?= e($event['category']) ?></span>
+            <?php endif; ?>
+        </p>
         </div>
         <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center;">
             <?php if ($hasEnded): ?>
@@ -197,6 +200,12 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
 
             <?php if ($hasEnded): ?>
                 <p style="color:var(--color-text-muted);font-size:.88rem;">This event has ended.</p>
+
+            <?php elseif (!(int)($event['is_verified'] ?? 0)): ?>
+                <!-- Event not yet approved by admin — no RSVP allowed -->
+                <div class="flash flash-warning" style="margin:0;font-size:.88rem;">
+                    🔒 RSVP will be available once this event is approved by an admin.
+                </div>
 
             <?php elseif ($userRsvpStatus === 'approved'): ?>
                 <div class="flash flash-success" style="margin:0;">✓ Your RSVP is confirmed!</div>
