@@ -52,8 +52,8 @@ function addInlineError(field, message) {
     var span = document.createElement('span');
     span.className = 'field-error js-field-error';
     span.textContent = message;
-    // Insert after the field (or its parent label).
-    var parent = field.closest('label') || field.parentNode;
+    var floatWrap = field.closest('.float-field');
+    var parent = floatWrap || field.closest('label') || field.parentNode;
     parent.appendChild(span);
 }
 
@@ -62,15 +62,30 @@ function addInlineError(field, message) {
  */
 function validateField(field) {
     var val = field.value.trim();
-    var label = (field.closest('label') && field.closest('label').childNodes[0])
-        ? field.closest('label').childNodes[0].textContent.trim().replace(/\s*\*\s*$/, '').trim()
-        : (field.name || field.id || 'This field');
+    var dataLabel = field.getAttribute('data-validate-label');
+    var label = dataLabel && dataLabel !== ''
+        ? dataLabel
+        : (field.closest('label') && field.closest('label').childNodes[0])
+            ? field.closest('label').childNodes[0].textContent.trim().replace(/\s*\*\s*$/, '').trim()
+            : (field.name || field.id || 'This field');
 
     if (field.hasAttribute('required') && val === '') {
         return label + ' is required.';
     }
     if (field.type === 'email' && val !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         return 'Please provide a valid email address.';
+    }
+    if (field.getAttribute('data-validate-password') === '1' && val !== '') {
+        if (val.length < 8 || !/[A-Za-z]/.test(val) || !/\d/.test(val)) {
+            return 'Password must be at least 8 characters with a letter and a number.';
+        }
+    }
+    var confirmSel = field.getAttribute('data-validate-confirm');
+    if (confirmSel && val !== '') {
+        var other = document.querySelector(confirmSel);
+        if (other && val !== other.value) {
+            return 'Passwords do not match.';
+        }
     }
     if (field.type === 'number' && val !== '' && parseInt(val, 10) <= 0) {
         return label + ' must be a positive number.';
@@ -138,7 +153,7 @@ function initValidatedForms() {
                 field.addEventListener(evt, function () {
                     if (field.classList.contains('input-error-js')) {
                         field.classList.remove('input-error-js');
-                        var parent = field.closest('label') || field.parentNode;
+                        var parent = field.closest('.float-field') || field.closest('label') || field.parentNode;
                         parent.querySelectorAll('.js-field-error').forEach(function (el) { el.remove(); });
                     }
                 });

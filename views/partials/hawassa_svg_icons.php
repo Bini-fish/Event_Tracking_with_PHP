@@ -1,0 +1,12 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Hawassa-themed auth icons: consistent stroke, rounded joins, 40×40 viewBox.
+ */
+$HAWASSA_SVG = [
+    'role_attendee' => '<svg class="hawassa-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M11 27c0-4.5 3.2-7.5 9-7.5s9 3 9 7.5"/><circle cx="20" cy="14.5" r="4.25" stroke="currentColor" stroke-width="1.35"/><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M7 32h26" opacity=".35"/><path stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M27.5 9.5s1.2 1.4 2.6 1.4 2.6-1.4 2.6-1.4M27.5 12.2v2.3" opacity=".55"/></svg>',
+    'role_organizer' => '<svg class="hawassa-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M5.5 11c3.2 4.2 6.8 6.5 11.2 6.5 4.5 0 8.5-2.6 11.8-7.2" opacity=".45"/><rect x="9" y="13" width="22" height="20" rx="2.25" stroke="currentColor" stroke-width="1.35"/><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" d="M9 19.5h22M15.5 9v4M24.5 9v4"/><circle cx="20" cy="25" r="1.6" fill="currentColor"/></svg>',
+    'role_admin' => '<svg class="hawassa-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M20 5.5L8.5 10.2v8.3c0 7.2 4.8 13.5 11.5 16 6.7-2.5 11.5-8.8 11.5-16v-8.3L20 5.5z"/><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M16.2 20.5l3.1 3.2 6.5-6.7"/></svg>',
+    'register_jebena' => '<svg class="hawassa-icon hawassa-icon--jebena" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M13.5 28.5h-2c-2 0-3.5-1.6-3.5-3.7V15.2c0-2.1 1.6-3.7 3.5-3.7h10.2c2 0 3.5 1.6 3.5 3.7v9.6c0 2.1-1.6 3.7-3.5 3.7h-2"/><path stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M24.2 11.5V9.8c0-3.4 2.8-6.3 6.3-6.3h1.5"/><path stroke="currentColor" stroke-width="1.2" stroke-linecap="round" d="M18.5 7.5s.8 2.2 0 4.2M22 6.5s1 2.4 0 4.8" opacity=".5"/></svg>',
+];
