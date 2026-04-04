@@ -115,8 +115,11 @@ foreach ($messageFiles as $filePath) {
         }
 
         $postedAtTitleNode = $xpath->query('.//div[contains(concat(" ", normalize-space(@class), " "), " date ") and @title]', $messageNode);
-        $postedAtTitle = $postedAtTitleNode !== false && $postedAtTitleNode->length > 0
-            ? (string) ($postedAtTitleNode->item(0)?->getAttribute('title') ?? '')
+        $postedAtTitleElement = $postedAtTitleNode !== false && $postedAtTitleNode->length > 0 && $postedAtTitleNode->item(0) instanceof DOMElement
+            ? $postedAtTitleNode->item(0)
+            : null;
+        $postedAtTitle = $postedAtTitleElement instanceof DOMElement
+            ? (string) $postedAtTitleElement->getAttribute('title')
             : '';
         $postedAt = parse_posted_at($postedAtTitle);
 
@@ -127,8 +130,11 @@ foreach ($messageFiles as $filePath) {
         $matchedAnnouncements++;
 
         $photoHrefNode = $xpath->query('.//a[contains(concat(" ", normalize-space(@class), " "), " photo_wrap ")]', $messageNode);
-        $photoHref = $photoHrefNode !== false && $photoHrefNode->length > 0
-            ? trim((string) ($photoHrefNode->item(0)?->getAttribute('href') ?? ''))
+        $photoHrefElement = $photoHrefNode !== false && $photoHrefNode->length > 0 && $photoHrefNode->item(0) instanceof DOMElement
+            ? $photoHrefNode->item(0)
+            : null;
+        $photoHref = $photoHrefElement instanceof DOMElement
+            ? trim((string) $photoHrefElement->getAttribute('href'))
             : '';
 
         $imagePath = null;
