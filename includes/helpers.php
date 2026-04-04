@@ -70,6 +70,57 @@ function get_old_input(): array
 }
 
 /**
+ * Retrieve a single old input value by dot-notation key (e.g. 'event.title').
+ */
+function old(string $key, string $default = ''): string
+{
+    static $cache = null;
+    if ($cache === null) {
+        $cache = get_old_input();
+        // Re-store so subsequent calls within the same request still work.
+        if (!empty($cache)) {
+            $_SESSION['old_input'] = $cache;
+        }
+    }
+
+    $segments = explode('.', $key);
+    $value = $cache;
+    foreach ($segments as $seg) {
+        if (!is_array($value) || !array_key_exists($seg, $value)) {
+            return $default;
+        }
+        $value = $value[$seg];
+    }
+    return is_string($value) ? $value : $default;
+}
+
+/**
+ * Store field-specific validation errors in session.
+ */
+function set_validation_errors(array $errors): void
+{
+    $_SESSION['validation_errors'] = $errors;
+}
+
+/**
+ * Retrieve and clear field-specific validation errors.
+ */
+function get_validation_errors(): array
+{
+    $errors = $_SESSION['validation_errors'] ?? [];
+    unset($_SESSION['validation_errors']);
+    return is_array($errors) ? $errors : [];
+}
+
+/**
+ * Peek at validation errors without clearing (for views that render partials).
+ */
+function peek_validation_errors(): array
+{
+    return $_SESSION['validation_errors'] ?? [];
+}
+
+/**
  * Check whether a datetime string is in the past (event has ended).
  */
 function has_datetime_passed(string $dateTime): bool

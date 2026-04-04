@@ -60,7 +60,8 @@ function can_view_event(
 
 /**
  * Can user RSVP to event?
- * Rule: same as view policy (verified OR admin OR organizer-owner).
+ * Rule: event MUST be verified (approved by admin).  No RSVP on unapproved events.
+ * Additionally, user must be able to view the event.
  */
 function can_rsvp_event(
     int $userId,
@@ -68,6 +69,11 @@ function can_rsvp_event(
     ?string $userRole = null,
     bool $requireVerification = true
 ): bool {
+    // RSVP always requires the event to be approved — no exceptions.
+    if ((int) ($event['is_verified'] ?? 0) !== 1) {
+        return false;
+    }
+
     return can_view_event($userId, $event, $userRole, $requireVerification);
 }
 
@@ -107,4 +113,24 @@ function can_create_event(int $userId, ?string $userRole = null): bool
     $role = policy_effective_role($userRole);
     return $role === 'organizer' || $role === 'admin';
 }
+
+/**
+ * Can user manage RSVPs (approve/reject) for an event?
+ * Rule: admin OR organizer-owner.
+ */
+function can_manage_rsvps(int $userId, array $event, ?string $userRole = null): bool
+{
+    return policy_is_admin($userRole) || policy_is_event_owner($userId, $event);
+}
+
+/**
+ * Can user submit feedback for an event?
+ * Rule: must be logged in AND approved attendee AND event ended AND not already submitted.
+ * (Actual DB checks are handled in action; this only checks role-level access.)
+ */
+function can_submit_feedback(int $userId, ?string $userRole = null): bool
+{
+    return $userId > 0;
+}
+
 

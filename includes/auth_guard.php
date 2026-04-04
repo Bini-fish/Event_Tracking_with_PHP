@@ -46,3 +46,17 @@ function require_organizer(): void
     require_role('organizer');
 }
 
+/**
+ * Require either admin or organizer role.
+ */
+function require_admin_or_organizer(): void
+{
+    require_login();
+
+    if (!user_has_role('admin') && !user_has_role('organizer')) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
+}
+

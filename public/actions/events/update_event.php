@@ -1,10 +1,12 @@
 <?php
-// Handle basic event updates from the organizer (with optional image change).
+// Organiser/admin event update with full validation, form preservation, image replacement, re-approval reset.
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../includes/session.php';
 require_once __DIR__ . '/../../../includes/helpers.php';
 require_once __DIR__ . '/../../../includes/validation.php';
+require_once __DIR__ . '/../../../includes/upload.php';
 require_once __DIR__ . '/../../../includes/auth_guard.php';
 require_once __DIR__ . '/../../../includes/policy.php';
 require_once __DIR__ . '/../../../models/EventModel.php';
@@ -12,7 +14,6 @@ require_once __DIR__ . '/../../../models/EventModel.php';
 require_login();
 
 if (!policy_is_admin() && current_user_role() !== 'organizer') {
-    http_response_code(403);
     set_flash('error', 'You do not have permission to edit events.');
     redirect('event_feed');
 }
@@ -26,52 +27,84 @@ if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
     redirect('dashboard');
 }
 
+// ── Read inputs ───────────────────────────────────────────────────────────────
 $eventId     = request_int($_POST, 'event_id');
 $title       = request_string($_POST, 'title');
 $description = request_string($_POST, 'description');
 $location    = request_string($_POST, 'location');
+$category    = request_string($_POST, 'category');
 $eventDate   = request_string($_POST, 'event_date');
+$eventEnd    = request_string($_POST, 'event_end');
 $capacity    = request_int($_POST, 'capacity');
 $editReason  = request_string($_POST, 'edit_reason');
+$actorId     = current_user_id() ?? 0;
+$isAdmin     = policy_is_admin();
 
-foreach ([
-    validate_positive_int($eventId, 'Event'),
-    validate_required($title, 'Title'),
-    validate_max_length($title, 150, 'Title'),
-    validate_required($location, 'Location'),
-    validate_max_length($location, 150, 'Location'),
-    validate_required($description, 'Description'),
-    validate_max_length($description, 5000, 'Description'),
-    validate_event_datetime_format($eventDate, 'Event date'),
-    validate_event_datetime_bounds($eventDate, 300, 60 * 60 * 24 * 365 * 10, 'Event date'),
-    validate_positive_int($capacity, 'Capacity'),
-    validate_max_length($editReason, 500, 'Edit reason'),
-] as $err) {
-    if ($err !== true) {
-        set_flash('error', $err);
-        redirect('dashboard');
+// ── Preserve old input immediately ────────────────────────────────────────────
+$oldInput = [
+    'event_id'    => (string) $eventId,
+    'title'       => $title,
+    'description' => $description,
+    'location'    => $location,
+    'category'    => $category,
+    'event_date'  => $eventDate,
+    'event_end'   => $eventEnd,
+    'capacity'    => $capacity > 0 ? (string) $capacity : '',
+    'edit_reason' => $editReason,
+];
+
+// ── Collect ALL validation errors at once ─────────────────────────────────────
+$errors = collect_validation_errors([
+    'event_id'    => validate_positive_int($eventId, 'Event'),
+    'title'       => validate_required($title, 'Title'),
+    'title_len'   => ($title !== '') ? validate_max_length($title, 150, 'Title') : true,
+    'location'    => validate_required($location, 'Location'),
+    'loc_len'     => ($location !== '') ? validate_max_length($location, 150, 'Location') : true,
+    'category'    => validate_required($category, 'Category'),
+    'description' => validate_required($description, 'Description'),
+    'desc_len'    => ($description !== '') ? validate_max_length($description, 5000, 'Description') : true,
+    'event_date'  => validate_event_datetime_format($eventDate, 'Start date'),
+    'event_end'   => validate_event_datetime_format($eventEnd, 'End date'),
+    'capacity'    => validate_positive_int($capacity, 'Capacity'),
+    'reason_len'  => validate_max_length($editReason, 500, 'Edit reason'),
+]);
+
+if (!empty($errors)) {
+    foreach ($errors as $msg) {
+        set_flash('error', $msg);
     }
-}
-
-try {
-    $pdo = get_pdo();
-} catch (Throwable $e) {
-    log_exception($e, 'Update event DB init error');
-    set_flash('error', 'Something went wrong. Please try again.');
+    set_validation_errors($errors);
+    set_old_input($oldInput);
     redirect('dashboard');
 }
 
-$actorId = current_user_id() ?? 0;
-$isAdmin = policy_is_admin();
-$imagePath = null;
-$resetToPending = false;
+// ── Cross-field checks ────────────────────────────────────────────────────────
+$dtStart = parse_event_datetime($eventDate);
+$dtEnd   = parse_event_datetime($eventEnd);
 
+if ($dtEnd <= $dtStart) {
+    set_flash('error', 'End date/time must be after the start date/time.');
+    set_validation_errors(['event_end' => 'End date/time must be after the start date/time.']);
+    set_old_input($oldInput);
+    redirect('dashboard');
+}
+
+if (($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 60 < MIN_EVENT_DURATION_MINUTES) {
+    $msg = 'Event must be at least ' . MIN_EVENT_DURATION_MINUTES . ' minutes long.';
+    set_flash('error', $msg);
+    set_validation_errors(['event_end' => $msg]);
+    set_old_input($oldInput);
+    redirect('dashboard');
+}
+
+// ── Lock event row and verify ownership ──────────────────────────────────────
 try {
+    $pdo = get_pdo();
     $pdo->beginTransaction();
 
-    $eventStmt = $pdo->prepare('SELECT * FROM events WHERE id = :id LIMIT 1 FOR UPDATE');
-    $eventStmt->execute([':id' => $eventId]);
-    $event = $eventStmt->fetch();
+    $eStmt = $pdo->prepare('SELECT * FROM events WHERE id=:id FOR UPDATE');
+    $eStmt->execute([':id' => $eventId]);
+    $event = $eStmt->fetch();
 
     if (!$event || !can_edit_event($actorId, $event)) {
         $pdo->rollBack();
@@ -79,127 +112,65 @@ try {
         redirect('dashboard');
     }
 
-    $imagePath = $event['image_path'] ?? null;
+    $oldImagePath   = $event['image_path'] ?? null;
+    $newImagePath   = $oldImagePath;
     $resetToPending = !$isAdmin && (int) ($event['is_verified'] ?? 0) === 1;
-} catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    log_exception($e, 'Update event DB read/lock error');
-    set_flash('error', 'Something went wrong. Please try again.');
-    redirect('dashboard');
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    log_exception($e, 'Update event read/lock error');
+    if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+    log_exception($e, 'Update event lock');
     set_flash('error', 'Something went wrong. Please try again.');
+    set_old_input($oldInput);
     redirect('dashboard');
 }
 
-if (isset($_FILES['image']) && is_array($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-    $tmpName = (string) ($_FILES['image']['tmp_name'] ?? '');
-    $size    = (int) ($_FILES['image']['size'] ?? 0);
-    $maxSize = 2 * 1024 * 1024; // 2MB
-    $allowedMimeToExt = [
-        'image/jpeg' => 'jpg',
-        'image/png'  => 'png',
-        'image/gif'  => 'gif',
-    ];
-
-    if ($size <= 0 || $size > $maxSize || !is_uploaded_file($tmpName)) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        set_flash('error', 'Image must be a valid uploaded file under 2MB.');
+// ── Image replacement (centralized, 5MB) ─────────────────────────────────────
+if (isset($_FILES['image']) && is_array($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+    $uploaded = handle_image_upload('image');
+    if ($uploaded === false) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        set_old_input($oldInput);
         redirect('dashboard');
     }
-
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime  = (string) $finfo->file($tmpName);
-    $ext   = $allowedMimeToExt[$mime] ?? null;
-
-    if ($ext === null) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        set_flash('error', 'Only JPG, PNG, and GIF images are allowed.');
-        redirect('dashboard');
+    if ($uploaded !== null) {
+        // Delete old file only after successful upload.
+        delete_uploaded_image($oldImagePath);
+        $newImagePath = $uploaded;
     }
-
-    $uploadDir = __DIR__ . '/../../../public/uploads';
-    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        set_flash('error', 'Could not prepare upload directory.');
-        redirect('dashboard');
-    }
-
-    $newName    = bin2hex(random_bytes(16)) . '.' . $ext;
-    $uploadPath = $uploadDir . '/' . $newName;
-
-    if (!move_uploaded_file($tmpName, $uploadPath)) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        set_flash('error', 'Could not store uploaded image.');
-        redirect('dashboard');
-    }
-
-    $imagePath = 'uploads/' . $newName;
 }
 
+// ── DB update ─────────────────────────────────────────────────────────────────
 try {
-    $newVerificationState = $resetToPending ? 0 : (int) ($event['is_verified'] ?? 0);
-    $stmt = $pdo->prepare(
+    $newVerified = $resetToPending ? 0 : (int) ($event['is_verified'] ?? 0);
+    $pdo->prepare(
         'UPDATE events
-         SET title = :title,
-             description = :description,
-             image_path = :image_path,
-             location = :location,
-             event_date = :event_date,
-             capacity = :capacity,
-             is_verified = :is_verified,
-             edited_at = NOW(),
-             edited_by = :edited_by,
-             edit_reason = :edit_reason
-         WHERE id = :id'
-    );
-    $ok = $stmt->execute([
-        ':id' => $eventId,
-        ':title' => $title,
-        ':description' => $description,
-        ':image_path' => $imagePath,
-        ':location' => $location,
-        ':event_date' => $eventDate,
-        ':capacity' => $capacity,
-        ':is_verified' => $newVerificationState,
-        ':edited_by' => $actorId,
-        ':edit_reason' => $editReason !== '' ? $editReason : null,
+         SET title=:title, description=:desc, image_path=:img,
+             location=:loc, category=:cat, event_date=:date, event_end=:end, capacity=:cap,
+             is_verified=:ver, edited_at=NOW(), edited_by=:by, edit_reason=:reason
+         WHERE id=:id'
+    )->execute([
+        ':id'     => $eventId,
+        ':title'  => $title,
+        ':desc'   => $description,
+        ':img'    => $newImagePath,
+        ':loc'    => $location,
+        ':cat'    => $category !== '' ? $category : 'General',
+        ':date'   => $dtStart->format('Y-m-d H:i:s'),
+        ':end'    => $dtEnd->format('Y-m-d H:i:s'),
+        ':cap'    => $capacity,
+        ':ver'    => $newVerified,
+        ':by'     => $actorId,
+        ':reason' => $editReason !== '' ? $editReason : null,
     ]);
-
     $pdo->commit();
-} catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    log_exception($e, 'Update event DB write error');
-    set_flash('error', 'Something went wrong. Please try again.');
-    redirect('dashboard');
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    log_exception($e, 'Update event write error');
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    log_exception($e, 'Update event write');
     set_flash('error', 'Something went wrong. Please try again.');
+    set_old_input($oldInput);
     redirect('dashboard');
 }
 
-if ($ok && $resetToPending) {
-    set_flash('success', 'Event changes submitted and pending re-approval.');
-} else {
-    set_flash($ok ? 'success' : 'error', $ok ? 'Event updated.' : 'Could not update event.');
-}
+set_flash('success', $resetToPending
+    ? 'Event changes submitted and pending re-approval.'
+    : 'Event updated successfully.');
 redirect('dashboard');
-

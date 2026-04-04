@@ -16,10 +16,11 @@ function comment_get_by_event(int $eventId): array
     $pdo = get_pdo();
 
     $stmt = $pdo->prepare(
-        'SELECT *
-         FROM comments
-         WHERE event_id = :event_id
-         ORDER BY created_at ASC'
+        'SELECT c.*, u.name
+         FROM comments c
+         JOIN users u ON u.id = c.user_id
+         WHERE c.event_id = :event_id
+         ORDER BY c.created_at ASC'
     );
 
     $stmt->execute([':event_id' => $eventId]);
