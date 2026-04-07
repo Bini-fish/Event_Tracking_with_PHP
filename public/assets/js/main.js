@@ -17,9 +17,12 @@ function showToast(messages, type) {
     toast.className = 'toast toast-' + type;
     toast.setAttribute('role', 'alert');
 
-    var icon = type === 'error' ? '✕' : type === 'warning' ? '⚠' : '✓';
+    var svgCheck = '<svg class="ui-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var svgX = '<svg class="ui-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    var svgWarn = '<svg class="ui-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    var iconWrap = type === 'error' ? svgX : type === 'warning' ? svgWarn : svgCheck;
     var list = messages.map(function (m) { return '<li>' + m + '</li>'; }).join('');
-    toast.innerHTML = '<span class="toast-icon">' + icon + '</span>'
+    toast.innerHTML = '<span class="toast-icon">' + iconWrap + '</span>'
         + '<div class="toast-body"><ul>' + list + '</ul></div>'
         + '<button class="toast-close" aria-label="Dismiss" onclick="this.parentElement.remove()">×</button>';
 

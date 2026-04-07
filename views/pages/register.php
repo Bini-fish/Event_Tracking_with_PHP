@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../partials/hawassa_svg_icons.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 
 $oldInput = get_old_input();
 $registerOld = is_array($oldInput['register'] ?? null) ? $oldInput['register'] : [];
@@ -15,12 +15,12 @@ $oldRole  = (string) ($registerOld['role'] ?? 'attendee');
         <a class="auth-back-link" href="<?= e(url_for('home')) ?>">← Home</a>
         <div class="auth-login-card auth-register-card auth-animate-in">
             <div class="auth-role-badge auth-role-badge--neutral auth-role-badge--interactive">
-                <span class="auth-role-icon hawassa-icon-wrap" style="color: var(--hawassa-gold, #c9a227);">
-                    <?= $HAWASSA_SVG['register_jebena'] ?? '' ?>
+                <span class="auth-role-icon" style="color: var(--color-primary);">
+                    <?= ui_icon('user_plus', ['size' => 28, 'class' => 'auth-role-icon-svg']) ?>
                 </span>
             </div>
             <h1 class="auth-login-title">Create your account</h1>
-            <p class="auth-login-sub">Join Hawassa’s verified event community — quick setup, clear validation, and a warm welcome.</p>
+            <p class="auth-login-sub">Join Hawassa’s verified event community quick setup, clear validation, and a warm welcome.</p>
 
             <form action="<?= e(BASE_URL . 'actions/auth/register.php') ?>" method="post" class="auth-form auth-form-premium validated-form" id="regForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
@@ -79,18 +79,18 @@ $oldRole  = (string) ($registerOld['role'] ?? 'attendee');
                 </div>
 
                 <fieldset class="auth-role-fieldset">
-                    <legend class="auth-role-legend">I want to…</legend>
+                    <legend class="auth-role-legend">Account type</legend>
                     <label class="auth-role-option <?= $oldRole !== 'organizer' ? 'is-selected' : '' ?>">
                         <input type="radio" name="role" value="attendee" <?= $oldRole !== 'organizer' ? 'checked' : '' ?>>
                         <span class="auth-role-option-body">
-                            <span class="auth-role-option-title">Attend events</span>
+                            <span class="auth-role-option-title">Attendee Event</span>
                             <span class="auth-role-option-desc">Discover, RSVP, and give feedback</span>
                         </span>
                     </label>
                     <label class="auth-role-option <?= $oldRole === 'organizer' ? 'is-selected' : '' ?>">
                         <input type="radio" name="role" value="organizer" <?= $oldRole === 'organizer' ? 'checked' : '' ?>>
                         <span class="auth-role-option-body">
-                            <span class="auth-role-option-title">Organize events</span>
+                            <span class="auth-role-option-title">Organizer Event</span>
                             <span class="auth-role-option-desc">Create listings and manage RSVPs</span>
                         </span>
                     </label>
