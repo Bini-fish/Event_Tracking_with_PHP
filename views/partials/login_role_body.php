@@ -60,6 +60,7 @@ $roleIconSvg = $HAWASSA_SVG['role_' . $loginRole] ?? '';
             <form action="<?= e(BASE_URL . 'actions/auth/login.php') ?>" method="post" class="auth-form auth-form-premium validated-form" id="roleLoginForm" data-auth-login="1">
                 <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                 <input type="hidden" name="redirect" value="<?= e($redirectParam) ?>">
+                <input type="hidden" name="login_role" value="<?= e($loginRole) ?>">
 
                 <div class="float-field">
                     <input type="email" name="email" id="login-email" value="<?= e($oldEmail) ?>" autocomplete="email"

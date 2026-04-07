@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/auth_guard.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../includes/policy.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 require_once __DIR__ . '/../../models/EventModel.php';
 require_once __DIR__ . '/../../models/RsvpModel.php';
 require_once __DIR__ . '/../../models/FeedbackModel.php';
@@ -119,15 +120,17 @@ function err_msg_edit(int $eventId, string $field): string
 
 <!-- ── Pending RSVPs ────────────────────────────────────────────────────── -->
 <section class="dashboard-section">
-    <h2>⏳ Pending RSVP Requests
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('clock', ['size' => 22]) ?></span>
+        <span>Pending RSVP Requests</span>
         <?php if (count($pendingRsvps) > 0): ?>
-            <span class="badge badge-pending" style="vertical-align:middle;margin-left:var(--sp-2)"><?= count($pendingRsvps) ?></span>
+            <span class="badge badge-pending"><?= count($pendingRsvps) ?></span>
         <?php endif; ?>
     </h2>
 
     <?php if (empty($pendingRsvps)): ?>
         <div class="empty-state" style="padding:var(--sp-8) 0">
-            <div class="empty-icon">✅</div>
+            <div class="empty-icon" aria-hidden="true"><?= ui_icon('check_circle', ['size' => 48]) ?></div>
             <h3>All caught up!</h3>
             <p>No pending RSVPs at the moment.</p>
         </div>
@@ -165,13 +168,13 @@ function err_msg_edit(int $eventId, string $field): string
                                     <form action="<?= e(BASE_URL . 'actions/events/approve_rsvp.php') ?>" method="post">
                                         <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                         <input type="hidden" name="rsvp_id" value="<?= (int)$r['rsvp_id'] ?>">
-                                        <button type="submit" class="button success sm" aria-label="Approve RSVP for <?= e($r['attendee_name']) ?>">✓ Approve</button>
+                                        <button type="submit" class="button success sm" aria-label="Approve RSVP for <?= e($r['attendee_name']) ?>"><?= ui_icon('check', ['size' => 16]) ?> Approve</button>
                                     </form>
                                     <?php endif; ?>
                                     <form action="<?= e(BASE_URL . 'actions/events/reject_rsvp.php') ?>" method="post">
                                         <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                         <input type="hidden" name="rsvp_id" value="<?= (int)$r['rsvp_id'] ?>">
-                                        <button type="submit" class="button danger sm" aria-label="Reject RSVP for <?= e($r['attendee_name']) ?>">✕ Reject</button>
+                                        <button type="submit" class="button danger sm" aria-label="Reject RSVP for <?= e($r['attendee_name']) ?>"><?= ui_icon('x', ['size' => 16]) ?> Reject</button>
                                     </form>
                                 </div>
                             </td>
@@ -185,7 +188,10 @@ function err_msg_edit(int $eventId, string $field): string
 
 <!-- ── Create Event ─────────────────────────────────────────────────────── -->
 <section class="dashboard-section" id="create-event">
-    <h2>➕ Create New Event</h2>
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('plus', ['size' => 22]) ?></span>
+        <span>Create New Event</span>
+    </h2>
     <div class="card">
         <form action="<?= e(BASE_URL . 'actions/events/create_event.php') ?>" method="post"
               enctype="multipart/form-data" class="auth-form validated-form" id="createEventForm"
@@ -290,10 +296,13 @@ function err_msg_edit(int $eventId, string $field): string
 
 <!-- ── Your Events ──────────────────────────────────────────────────────── -->
 <section class="dashboard-section">
-    <h2>📋 Your Events</h2>
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('clipboard_list', ['size' => 22]) ?></span>
+        <span>Your Events</span>
+    </h2>
     <?php if (empty($events)): ?>
         <div class="empty-state" style="padding:var(--sp-8) 0">
-            <div class="empty-icon">🎉</div>
+            <div class="empty-icon" aria-hidden="true"><?= ui_icon('circle_plus', ['size' => 48]) ?></div>
             <h3>No events yet</h3>
             <p>Create your first event using the form above.</p>
         </div>
@@ -327,15 +336,15 @@ function err_msg_edit(int $eventId, string $field): string
                             <?php endif; ?>
                         </div>
                         <p class="event-meta" style="margin-top:var(--sp-2)">
-                            📅 <?= e(date('d M Y, H:i', strtotime((string) $event['event_date']))) ?>
-                            <?php if (!empty($event['event_end'])): ?> → <?= e(date('H:i', strtotime((string) $event['event_end']))) ?><?php endif; ?>
-                            &nbsp;·&nbsp; 📍 <?= e($event['location']) ?>
+                            <span class="meta-with-icon"><?= ui_icon('calendar', ['size' => 15]) ?><?= e(date('d M Y, H:i', strtotime((string) $event['event_date']))) ?>
+                            <?php if (!empty($event['event_end'])): ?> → <?= e(date('H:i', strtotime((string) $event['event_end']))) ?><?php endif; ?></span>
+                            <span class="meta-with-icon"><?= ui_icon('map_pin', ['size' => 15]) ?><?= e($event['location']) ?></span>
                         </p>
                         <p style="font-size:.82rem;color:var(--color-text-muted)">
                             Approved: <strong><?= count($approved) ?></strong> / <?= (int)$event['capacity'] ?> &nbsp;·&nbsp;
                             Pending: <strong style="color:var(--color-warning)"><?= count($pending) ?></strong>
                             <?php if ($fb): ?>
-                                &nbsp;·&nbsp; Rating: <span class="stars"><?= str_repeat('★', (int) round($fb['avg_rating'])) ?></span>
+                                &nbsp;·&nbsp; Rating: <?= ui_stars_display((int) round($fb['avg_rating'])) ?>
                                 <?= number_format($fb['avg_rating'], 1) ?> (<?= $fb['count'] ?> reviews)
                             <?php endif; ?>
                         </p>
@@ -374,8 +383,8 @@ function err_msg_edit(int $eventId, string $field): string
 
                 <!-- Edit form (auto-open if this event had a validation error) -->
                 <details <?= $editHasErr ? 'open' : '' ?>>
-                    <summary style="cursor:pointer;font-size:.85rem;font-weight:600;color:var(--color-primary);margin-bottom:var(--sp-3)">
-                        ✏️ Edit Event
+                    <summary class="details-summary-with-icon" style="cursor:pointer;font-size:.85rem;font-weight:600;color:var(--color-primary);margin-bottom:var(--sp-3)">
+                        <?= ui_icon('pencil', ['size' => 16]) ?> Edit Event
                     </summary>
                     <form action="<?= e(BASE_URL . 'actions/events/update_event.php') ?>" method="post"
                           enctype="multipart/form-data" class="auth-form validated-form">
@@ -461,7 +470,7 @@ function err_msg_edit(int $eventId, string $field): string
                       style="margin-top:var(--sp-3)">
                     <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                     <input type="hidden" name="event_id" value="<?= $eId ?>">
-                    <button type="submit" class="button danger sm">🗑 Delete Event</button>
+                    <button type="submit" class="button danger sm"><?= ui_icon('trash_2', ['size' => 16]) ?> Delete Event</button>
                 </form>
             </div>
         <?php endforeach; ?>

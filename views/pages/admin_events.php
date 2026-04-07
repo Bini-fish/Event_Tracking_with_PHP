@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../models/EventModel.php';
 require_once __DIR__ . '/../../models/RsvpModel.php';
 require_once __DIR__ . '/../../models/FeedbackModel.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 
 require_admin();
 
@@ -53,10 +54,13 @@ try {
 
 <!-- ── Pending RSVPs ────────────────────────────────────────────────────────── -->
 <section class="dashboard-section">
-    <h2>⏳ All Pending RSVPs</h2>
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('clock', ['size' => 22]) ?></span>
+        <span>All Pending RSVPs</span>
+    </h2>
     <?php if (empty($pendingRsvps)): ?>
         <div class="empty-state" style="padding:var(--sp-8) 0">
-            <div class="empty-icon">✅</div>
+            <div class="empty-icon" aria-hidden="true"><?= ui_icon('check_circle', ['size' => 48]) ?></div>
             <h3>No pending RSVPs</h3>
         </div>
     <?php else: ?>
@@ -93,13 +97,13 @@ try {
                                     <form action="<?= e(BASE_URL . 'actions/events/approve_rsvp.php') ?>" method="post">
                                         <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                         <input type="hidden" name="rsvp_id" value="<?= (int)$r['rsvp_id'] ?>">
-                                        <button type="submit" class="button success sm">✓ Approve</button>
+                                        <button type="submit" class="button success sm"><?= ui_icon('check', ['size' => 16]) ?> Approve</button>
                                     </form>
                                     <?php endif; ?>
                                     <form action="<?= e(BASE_URL . 'actions/events/reject_rsvp.php') ?>" method="post">
                                         <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                         <input type="hidden" name="rsvp_id" value="<?= (int)$r['rsvp_id'] ?>">
-                                        <button type="submit" class="button danger sm">✕ Reject</button>
+                                        <button type="submit" class="button danger sm"><?= ui_icon('x', ['size' => 16]) ?> Reject</button>
                                     </form>
                                 </div>
                             </td>
@@ -113,10 +117,13 @@ try {
 
 <!-- ── Pending Events ───────────────────────────────────────────────────────── -->
 <section class="dashboard-section">
-    <h2>📋 Events Pending Approval</h2>
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('clipboard_list', ['size' => 22]) ?></span>
+        <span>Events Pending Approval</span>
+    </h2>
     <?php if (empty($pendingEvents)): ?>
         <div class="empty-state" style="padding:var(--sp-8) 0">
-            <div class="empty-icon">🎉</div>
+            <div class="empty-icon" aria-hidden="true"><?= ui_icon('check_circle', ['size' => 48]) ?></div>
             <h3>No pending events</h3>
             <p>All submitted events have been reviewed.</p>
         </div>
@@ -131,7 +138,7 @@ try {
                     <?php if (!empty($event['image_path'])): ?>
                         <img class="event-card-img" src="<?= e(BASE_URL . $event['image_path']) ?>" alt="" loading="lazy">
                     <?php else: ?>
-                        <div class="event-card-img-placeholder" aria-hidden="true">📅</div>
+                        <div class="event-card-img-placeholder" aria-hidden="true"><?= ui_icon('calendar', ['size' => 40]) ?></div>
                     <?php endif; ?>
                     <div class="event-card-body">
                         <div class="event-card-header">
@@ -139,14 +146,14 @@ try {
                             <span class="badge badge-pending">Pending</span>
                         </div>
                         <div class="event-meta">
-                            <span>📅 <?= e(date('d M Y, H:i', strtotime((string) $event['event_date']))) ?></span>
-                            <span>📍 <?= e($event['location']) ?></span>
+                            <span class="meta-with-icon"><?= ui_icon('calendar', ['size' => 15]) ?><?= e(date('d M Y, H:i', strtotime((string) $event['event_date']))) ?></span>
+                            <span class="meta-with-icon"><?= ui_icon('map_pin', ['size' => 15]) ?><?= e($event['location']) ?></span>
                             <?php if (!empty($event['category'])): ?>
-                                <span>🏷️ <?= e($event['category']) ?></span>
+                                <span class="meta-with-icon"><?= ui_icon('tag', ['size' => 15]) ?><?= e($event['category']) ?></span>
                             <?php endif; ?>
-                            <span>👥 <?= $approved ?> RSVPs</span>
+                            <span class="meta-with-icon"><?= ui_icon('users', ['size' => 15]) ?><?= $approved ?> RSVPs</span>
                             <?php if ($fb): ?>
-                                <span>⭐ <?= number_format($fb['avg_rating'], 1) ?> (<?= $fb['count'] ?>)</span>
+                                <span class="meta-with-icon"><?= ui_stars_display((int) round($fb['avg_rating']), 5) ?> <?= number_format($fb['avg_rating'], 1) ?> (<?= $fb['count'] ?>)</span>
                             <?php endif; ?>
                         </div>
                         <?php if (!empty($event['edit_reason'])): ?>
@@ -159,7 +166,7 @@ try {
                                 <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                 <input type="hidden" name="event_id" value="<?= (int) $event['id'] ?>">
                                 <input type="hidden" name="is_verified" value="1">
-                                <button type="submit" class="button success" style="width:100%">✓ Approve</button>
+                                <button type="submit" class="button success" style="width:100%"><?= ui_icon('check', ['size' => 16]) ?> Approve</button>
                             </form>
                             <a href="<?= e(url_for('event_detail', ['id' => (int) $event['id']])) ?>" class="button subtle" style="flex:1;text-align:center">View</a>
                         </div>

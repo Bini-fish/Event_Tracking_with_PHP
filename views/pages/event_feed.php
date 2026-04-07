@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/auth_guard.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../models/EventModel.php';
 require_once __DIR__ . '/../../models/RsvpModel.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 
 require_login();
 
@@ -23,7 +24,7 @@ $pages   = (int) ceil($total / $perPage);
 
 <?php if (empty($events)): ?>
     <div class="empty-state">
-        <div class="empty-icon">🗓️</div>
+        <div class="empty-icon" aria-hidden="true"><?= ui_icon('calendar', ['size' => 48]) ?></div>
         <h3>No events yet</h3>
         <p>Check back soon — new events are added regularly.</p>
     </div>
@@ -45,7 +46,7 @@ $pages   = (int) ceil($total / $perPage);
                          alt="<?= e($event['title']) ?> image"
                          loading="lazy">
                 <?php else: ?>
-                    <div class="event-card-img-placeholder" aria-hidden="true">📅</div>
+                    <div class="event-card-img-placeholder" aria-hidden="true"><?= ui_icon('calendar', ['size' => 40]) ?></div>
                 <?php endif; ?>
 
                 <div class="event-card-body">
@@ -61,10 +62,10 @@ $pages   = (int) ceil($total / $perPage);
                     </div>
 
                     <div class="event-meta">
-                        <span>📅 <?= e($startFmt) ?></span>
-                        <span>📍 <?= e($event['location']) ?></span>
+                        <span class="meta-with-icon"><?= ui_icon('calendar', ['size' => 15]) ?><?= e($startFmt) ?></span>
+                        <span class="meta-with-icon"><?= ui_icon('map_pin', ['size' => 15]) ?><?= e($event['location']) ?></span>
                         <?php if (!$isFull && !$hasEnded): ?>
-                            <span>🎟️ <?= $remaining ?> seat<?= $remaining === 1 ? '' : 's' ?> left</span>
+                            <span class="meta-with-icon"><?= ui_icon('ticket', ['size' => 15]) ?><?= $remaining ?> seat<?= $remaining === 1 ? '' : 's' ?> left</span>
                         <?php endif; ?>
                     </div>
 

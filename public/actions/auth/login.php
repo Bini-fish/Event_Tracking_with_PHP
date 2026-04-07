@@ -162,6 +162,35 @@ try {
     redirect('login');
 }
 
+// ── Role validation: enforce strict role isolation on role-specific login pages ──
+$loginRole = isset($_POST['login_role']) && $_POST['login_role'] !== ''
+    ? (string) $_POST['login_role']
+    : null;
+
+if ($loginRole !== null && !in_array($loginRole, ['attendee', 'organizer', 'admin'], true)) {
+    $loginRole = null; // ignore invalid values
+}
+
+if ($loginRole !== null && ($user['role'] ?? '') !== $loginRole) {
+    // Role mismatch — block login immediately.
+    register_login_failure($throttleKey);
+    set_old_input([
+        'login' => [
+            'email' => $email,
+        ],
+    ]);
+    set_flash('error', 'You are not authorized to access this panel.');
+
+    // Redirect back to the correct role login page.
+    $roleLoginPages = [
+        'attendee'  => 'login_attendee',
+        'organizer' => 'login_organizer',
+        'admin'     => 'login_admin',
+    ];
+    $redirectPage = $roleLoginPages[$loginRole] ?? 'login';
+    redirect($redirectPage);
+}
+
 login_user($user);
 clear_login_failures($throttleKey);
 delete_current_remember_me_token();

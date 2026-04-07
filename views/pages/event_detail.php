@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../models/EventModel.php';
 require_once __DIR__ . '/../../models/RsvpModel.php';
 require_once __DIR__ . '/../../models/CommentModel.php';
 require_once __DIR__ . '/../../models/FeedbackModel.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 
 require_login();
 
@@ -69,7 +70,7 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
 <?php if ($showConflict && !empty($conflictData['conflicts'])): ?>
 <div class="modal-backdrop" id="conflictModal" role="dialog" aria-modal="true" aria-labelledby="conflictTitle">
     <div class="modal">
-        <h2 id="conflictTitle">⚠️ Schedule Conflict Detected</h2>
+        <h2 id="conflictTitle" class="modal-title-with-icon"><?= ui_icon('alert_triangle', ['size' => 24]) ?> Schedule Conflict Detected</h2>
         <p style="margin-bottom:var(--sp-4);font-size:.9rem;color:var(--color-text-muted);">
             This event overlaps with your existing RSVPs. You can still proceed, but you may not be able to attend all events.
         </p>
@@ -102,10 +103,10 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
         <div>
             <h1><?= e($event['title']) ?></h1>
             <p class="event-meta" style="margin-top:var(--sp-3);">
-            <span>📅 <?= e($startFmt) ?><?= $endFmt ? ' – ' . e($endFmt) : '' ?></span>
-            <span>📍 <?= e($event['location']) ?></span>
+            <span class="meta-with-icon"><?= ui_icon('calendar', ['size' => 15]) ?><?= e($startFmt) ?><?= $endFmt ? ' – ' . e($endFmt) : '' ?></span>
+            <span class="meta-with-icon"><?= ui_icon('map_pin', ['size' => 15]) ?><?= e($event['location']) ?></span>
             <?php if (!empty($event['category'])): ?>
-                <span>🏷️ <?= e($event['category']) ?></span>
+                <span class="meta-with-icon"><?= ui_icon('tag', ['size' => 15]) ?><?= e($event['category']) ?></span>
             <?php endif; ?>
         </p>
         </div>
@@ -163,7 +164,7 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
                 Attendee Feedback
                 <?php if ($feedbackSummary): ?>
                     <span style="font-size:.85rem;font-weight:400;color:var(--color-text-muted);margin-left:var(--sp-3);">
-                        Avg: <span class="stars"><?= str_repeat('★', (int) round($feedbackSummary['avg_rating'])) ?></span>
+                        Avg: <?= ui_stars_display((int) round($feedbackSummary['avg_rating'])) ?>
                         <?= number_format($feedbackSummary['avg_rating'], 1) ?> / 5
                         (<?= $feedbackSummary['count'] ?> review<?= $feedbackSummary['count'] !== 1 ? 's' : '' ?>)
                     </span>
@@ -173,7 +174,7 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
                 <div class="feedback-item">
                     <div class="feedback-item-header">
                         <span class="reviewer"><?= e($fb['name']) ?></span>
-                        <span class="stars"><?= str_repeat('★', (int) $fb['rating']) ?><span class="stars-empty"><?= str_repeat('★', 5 - (int) $fb['rating']) ?></span></span>
+                        <?= ui_stars_display((int) $fb['rating']) ?>
                         <span class="review-date"><?= e(date('d M Y', strtotime($fb['created_at']))) ?></span>
                     </div>
                     <?php if (!empty($fb['comment'])): ?>
@@ -199,25 +200,41 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
             </div>
 
             <?php if ($hasEnded): ?>
-                <p style="color:var(--color-text-muted);font-size:.88rem;">This event has ended.</p>
+                <div class="flash flash-warning" style="margin:0;font-size:.88rem;">
+                    <span class="flash__icon"><?= ui_icon('clock', ['size' => 18]) ?></span>
+                    <span class="flash__text">This event has ended.</span>
+                </div>
 
             <?php elseif (!(int)($event['is_verified'] ?? 0)): ?>
                 <!-- Event not yet approved by admin — no RSVP allowed -->
                 <div class="flash flash-warning" style="margin:0;font-size:.88rem;">
-                    🔒 RSVP will be available once this event is approved by an admin.
+                    <span class="flash__icon"><?= ui_icon('lock', ['size' => 18]) ?></span>
+                    <span class="flash__text">RSVP will be available once this event is approved by an admin.</span>
                 </div>
 
             <?php elseif ($userRsvpStatus === 'approved'): ?>
-                <div class="flash flash-success" style="margin:0;">✓ Your RSVP is confirmed!</div>
+                <div class="flash flash-success" style="margin:0;">
+                    <span class="flash__icon"><?= ui_icon('check_circle', ['size' => 18]) ?></span>
+                    <span class="flash__text">Your RSVP is confirmed!</span>
+                </div>
 
             <?php elseif ($userRsvpStatus === 'pending'): ?>
-                <div class="flash flash-warning" style="margin:0;">⏳ Your RSVP is pending organiser approval.</div>
+                <div class="flash flash-warning" style="margin:0;">
+                    <span class="flash__icon"><?= ui_icon('clock', ['size' => 18]) ?></span>
+                    <span class="flash__text">Your RSVP is pending organiser approval.</span>
+                </div>
 
             <?php elseif ($userRsvpStatus === 'rejected'): ?>
-                <div class="flash flash-error" style="margin:0;">✕ Your RSVP was not approved for this event.</div>
+                <div class="flash flash-error" style="margin:0;">
+                    <span class="flash__icon"><?= ui_icon('x', ['size' => 18]) ?></span>
+                    <span class="flash__text">Your RSVP was not approved for this event.</span>
+                </div>
 
             <?php elseif ($isFull): ?>
-                <div class="flash flash-warning" style="margin:0;">This event is full.</div>
+                <div class="flash flash-warning" style="margin:0;">
+                    <span class="flash__icon"><?= ui_icon('ticket', ['size' => 18]) ?></span>
+                    <span class="flash__text">This event is full.</span>
+                </div>
 
             <?php else: ?>
                 <form action="<?= e(BASE_URL . 'actions/events/rsvp.php') ?>" method="post" id="rsvpForm">
@@ -238,7 +255,10 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
         <div class="card feedback-box">
             <h3>Leave Feedback</h3>
             <?php if (feedback_has_submitted($eventId, $userId)): ?>
-                <div class="flash flash-info" style="margin:0;font-size:.85rem;">You already submitted feedback. Thank you!</div>
+                <div class="flash flash-info" style="margin:0;font-size:.85rem;">
+                    <span class="flash__icon"><?= ui_icon('info', ['size' => 18]) ?></span>
+                    <span class="flash__text">You already submitted feedback. Thank you!</span>
+                </div>
             <?php else: ?>
                 <form action="<?= e(BASE_URL . 'actions/events/submit_feedback.php') ?>" method="post" id="feedbackForm">
                     <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
@@ -248,7 +268,7 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
                         <div class="star-rating" role="group" aria-label="Star rating">
                             <?php for ($s = 5; $s >= 1; $s--): ?>
                                 <input type="radio" id="star<?= $s ?>" name="rating" value="<?= $s ?>" required>
-                                <label for="star<?= $s ?>" aria-label="<?= $s ?> star<?= $s > 1 ? 's' : '' ?>">★</label>
+                                <label for="star<?= $s ?>" aria-label="<?= $s ?> star<?= $s > 1 ? 's' : '' ?>"><?= ui_icon('star', ['size' => 28, 'class' => 'star-input-icon']) ?></label>
                             <?php endfor; ?>
                         </div>
                     </div>
@@ -287,7 +307,7 @@ $pct      = min(100, $capacity > 0 ? (int) round($approvedCount / $capacity * 10
                     <input type="hidden" name="event_id" value="<?= $eventId ?>">
                     <input type="hidden" name="is_verified" value="<?= empty($event['is_verified']) ? '1' : '0' ?>">
                     <button type="submit" class="button sm <?= empty($event['is_verified']) ? 'success' : 'subtle' ?>" style="width:100%;">
-                        <?= empty($event['is_verified']) ? '✓ Approve Event' : 'Revoke Approval' ?>
+                        <?= empty($event['is_verified']) ? ui_icon('check', ['size' => 16]) . ' Approve Event' : 'Revoke Approval' ?>
                     </button>
                 </form>
             <?php endif; ?>
