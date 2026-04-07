@@ -9,9 +9,18 @@ require __DIR__ . '/../includes/helpers.php';
 require __DIR__ . '/../config/routes.php';
 
 $requestedPage = isset($_GET['page']) ? (string) $_GET['page'] : '';
+
+$host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+$remoteAddr = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$isLocalhost = str_starts_with($host, 'localhost')
+    || str_starts_with($host, '127.0.0.1')
+    || str_starts_with($host, '[::1]')
+    || $remoteAddr === '127.0.0.1'
+    || $remoteAddr === '::1';
+
 $page = $requestedPage !== ''
     ? $requestedPage
-    : (current_user_id() !== null ? 'event_feed' : 'landing');
+    : ($isLocalhost ? 'landing' : (current_user_id() !== null ? 'event_feed' : 'landing'));
 
 $GLOBALS['app_page'] = $page;
 

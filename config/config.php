@@ -22,7 +22,7 @@ const RATE_LIMIT_MAX_ACTION  = 20;
 const RATE_LIMIT_WINDOW_SECONDS = 300; // 5 minutes
 
 // Database settings – env vars take precedence; fallback to constants for local dev.
-defined('DB_HOST') || define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+defined('DB_HOST') || define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
 defined('DB_NAME') || define('DB_NAME', getenv('DB_NAME') ?: 'city_events');
 defined('DB_USER') || define('DB_USER', getenv('DB_USER') ?: 'root');
 defined('DB_PASS') || define('DB_PASS', getenv('DB_PASS') ?: '');
