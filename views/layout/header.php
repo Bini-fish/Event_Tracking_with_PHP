@@ -22,9 +22,11 @@ $isLanding = isset($page) && $page === 'landing';
 <body class="<?= $isLanding ? 'page-is-landing' : '' ?>">
 <header class="site-header<?= $isLanding ? ' site-header--landing' : '' ?>" role="banner">
     <div class="container header-inner">
+        <?php if (!$isLanding): ?>
         <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mainNav" aria-label="Toggle navigation">
             <span></span><span></span><span></span>
         </button>
+        <?php endif; ?>
 
         <nav class="main-nav" id="mainNav" role="navigation" aria-label="Main navigation">
             <a href="<?= e(url_for('event_feed')) ?>">Events</a>
