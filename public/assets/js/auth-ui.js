@@ -30,19 +30,19 @@
         var icon = wrap.querySelector('.field-status-icon');
         wrap.classList.remove('is-valid', 'is-invalid');
         if (icon) {
-            icon.textContent = '';
+            icon.innerHTML = '';
             icon.classList.remove('field-status-icon--ok', 'field-status-icon--bad');
         }
         if (state === 'ok') {
             wrap.classList.add('is-valid');
             if (icon) {
-                icon.textContent = '\u2713';
+                icon.innerHTML = '<svg class="ui-icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
                 icon.classList.add('field-status-icon--ok');
             }
         } else if (state === 'bad') {
             wrap.classList.add('is-invalid');
             if (icon) {
-                icon.textContent = '!';
+                icon.innerHTML = '<svg class="ui-icon-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.75"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
                 icon.classList.add('field-status-icon--bad');
             }
         }

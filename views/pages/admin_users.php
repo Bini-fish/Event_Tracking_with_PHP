@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/auth_guard.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/session.php';
 require_once __DIR__ . '/../../models/UserModel.php';
+require_once __DIR__ . '/../partials/ui_icons.php';
 
 require_admin();
 
@@ -15,7 +16,7 @@ $users   = user_get_all($roleFilter);
 $counts  = user_count_by_role();
 $actorId = current_user_id() ?? 0;
 
-$roleLabels = ['admin' => '🛡️ Admin', 'organizer' => '📋 Organiser', 'attendee' => '👤 Attendee'];
+$roleLabels = ['admin' => 'Admin', 'organizer' => 'Organiser', 'attendee' => 'Attendee'];
 
 // ── Pull old input & validation errors for Add User form ─────────────────────
 $addOld    = $_SESSION['old_input']['add_user'] ?? [];
@@ -68,7 +69,10 @@ function add_err_msg(string $field, array $errors): string
 
 <!-- ── Add User Form ─────────────────────────────────────────────────────── -->
 <section class="dashboard-section" id="add-user">
-    <h2>➕ Add New User</h2>
+    <h2 class="dashboard-heading">
+        <span class="dashboard-heading__icon" aria-hidden="true"><?= ui_icon('user_plus', ['size' => 22]) ?></span>
+        <span>Add New User</span>
+    </h2>
     <div class="card">
         <form action="<?= e(BASE_URL . 'actions/admin/add_user.php') ?>" method="post"
               class="auth-form validated-form" id="addUserForm" novalidate>
@@ -113,7 +117,7 @@ function add_err_msg(string $field, array $errors): string
                     <select name="role" id="adduser_role" required
                             class="<?= add_err_class('role', $addErrors) ?>">
                         <option value="">— Select role —</option>
-                        <?php foreach (['attendee' => '👤 Attendee', 'organizer' => '📋 Organiser', 'admin' => '🛡️ Admin'] as $val => $label): ?>
+                        <?php foreach (['attendee' => 'Attendee', 'organizer' => 'Organiser', 'admin' => 'Admin'] as $val => $label): ?>
                             <option value="<?= $val ?>" <?= ($addOld['role'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -124,7 +128,7 @@ function add_err_msg(string $field, array $errors): string
 
             <div style="display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;margin-top:var(--sp-2);">
                 <button type="submit" class="button primary" id="addUserBtn">
-                    ➕ Create User Account
+                    <?= ui_icon('plus', ['size' => 16]) ?> Create User Account
                 </button>
                 <span style="font-size:.8rem;color:var(--color-text-muted)">
                     The new user will log in with their email and password. They will not be auto-logged-in.
@@ -147,7 +151,7 @@ function add_err_msg(string $field, array $errors): string
 <!-- Users table -->
 <?php if (empty($users)): ?>
     <div class="empty-state" style="padding:var(--sp-8) 0">
-        <div class="empty-icon">👥</div>
+        <div class="empty-icon" aria-hidden="true"><?= ui_icon('users', ['size' => 48]) ?></div>
         <h3>No users found</h3>
     </div>
 <?php else: ?>
@@ -190,9 +194,9 @@ function add_err_msg(string $field, array $errors): string
                                 <select name="role" class="form-control"
                                         style="padding:.3rem .5rem;font-size:.82rem;width:auto;min-width:110px;"
                                         onchange="this.form.submit()">
-                                    <option value="attendee"  <?= $u['role'] === 'attendee'  ? 'selected' : '' ?>>👤 Attendee</option>
-                                    <option value="organizer" <?= $u['role'] === 'organizer' ? 'selected' : '' ?>>📋 Organiser</option>
-                                    <option value="admin"     <?= $u['role'] === 'admin'     ? 'selected' : '' ?>>🛡️ Admin</option>
+                                    <option value="attendee"  <?= $u['role'] === 'attendee'  ? 'selected' : '' ?>>Attendee</option>
+                                    <option value="organizer" <?= $u['role'] === 'organizer' ? 'selected' : '' ?>>Organiser</option>
+                                    <option value="admin"     <?= $u['role'] === 'admin'     ? 'selected' : '' ?>>Admin</option>
                                 </select>
                             </form>
                         <?php endif; ?>
@@ -206,7 +210,7 @@ function add_err_msg(string $field, array $errors): string
                                   onsubmit="return confirm('Delete <?= e($u['name']) ?>? This removes all their events, RSVPs, and comments.');">
                                 <input type="hidden" name="csrf_token" value="<?= e(get_csrf_token()) ?>">
                                 <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                <button type="submit" class="button danger sm">🗑 Delete</button>
+                                <button type="submit" class="button danger sm"><?= ui_icon('trash_2', ['size' => 16]) ?> Delete</button>
                             </form>
                         <?php else: ?>
                             <span style="font-size:.78rem;color:var(--color-text-light);">—</span>
