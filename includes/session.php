@@ -35,6 +35,7 @@ function login_user(array $user): void
     // Prevent session fixation on successful authentication.
     session_regenerate_id(true);
     $_SESSION['user_id'] = $user['id'] ?? null;
+    unset($_SESSION['admin_view_role']);
     update_session_role((string) ($user['role'] ?? 'attendee'));
 }
 
@@ -52,6 +53,67 @@ function update_session_role(string $newRole): void
     }
 
     $_SESSION['user_role'] = $safeRole;
+
+    // Keep admin-only view state only while truly authenticated as admin.
+    if ($safeRole !== 'admin') {
+        unset($_SESSION['admin_view_role']);
+    }
+}
+
+/**
+ * Set temporary admin view role (admin/organizer/attendee) for contextual navigation and access.
+ */
+function set_admin_view_role(?string $role): void
+{
+    if (current_user_role() !== 'admin') {
+        unset($_SESSION['admin_view_role']);
+        return;
+    }
+
+    if ($role === null) {
+        unset($_SESSION['admin_view_role']);
+        return;
+    }
+
+    if (!in_array($role, ['admin', 'organizer', 'attendee'], true)) {
+        return;
+    }
+
+    $_SESSION['admin_view_role'] = $role;
+}
+
+/**
+ * Get current admin-selected role view (defaults to admin when not set).
+ */
+function get_admin_view_role(): ?string
+{
+    if (current_user_role() !== 'admin') {
+        return null;
+    }
+
+    $viewRole = $_SESSION['admin_view_role'] ?? 'admin';
+    return in_array($viewRole, ['admin', 'organizer', 'attendee'], true) ? $viewRole : 'admin';
+}
+
+/**
+ * Effective role used for role-gated pages.
+ */
+function current_effective_role(): ?string
+{
+    $role = current_user_role();
+    if ($role !== 'admin') {
+        return $role;
+    }
+
+    return get_admin_view_role() ?? 'admin';
+}
+
+/**
+ * True when admin is viewing the app as a non-admin role.
+ */
+function is_admin_view_switched(): bool
+{
+    return current_user_role() === 'admin' && in_array((string) get_admin_view_role(), ['organizer', 'attendee'], true);
 }
 
 /**

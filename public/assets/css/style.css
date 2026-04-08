@@ -142,6 +142,28 @@ h4 {
     flex-shrink: 0;
 }
 
+.header-home-link {
+    margin-right: auto;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .18s ease, background-color .18s ease;
+}
+
+.header-home-link:hover {
+    transform: translateY(-1px);
+    background: var(--color-primary-soft);
+}
+
+.header-home-link img {
+    width: 40px;
+    height: 40px;
+    display: block;
+}
+
 .main-nav {
     display: none;
     position: absolute;
@@ -165,6 +187,36 @@ h4 {
 .main-nav a:hover {
     color: var(--color-primary);
     border-color: var(--color-primary);
+}
+
+.main-nav .inline-form {
+    display: block;
+    margin: 0;
+}
+
+.main-nav .nav-link-button {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    padding: var(--sp-2) var(--sp-3);
+    cursor: pointer;
+}
+
+.main-nav .nav-link-button:hover {
+    color: var(--color-primary);
+}
+
+.main-nav .nav-link-button--soft {
+    font-size: .85rem;
+    color: var(--color-info);
+}
+
+.main-nav .nav-link-button--soft:hover {
+    color: #0369a1;
+    background: var(--color-info-soft);
 }
 
 /* hamburger (mobile) */
@@ -215,6 +267,17 @@ h4 {
 /* ── Main / Footer ──────────────────────────────────────────────────────────── */
 .site-main {
     padding: var(--sp-12) 0;
+}
+
+.admin-view-notice {
+    margin-bottom: var(--sp-4);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
+    border-radius: var(--radius-md);
+    font-size: .9rem;
+    font-weight: 600;
 }
 
 .site-footer {

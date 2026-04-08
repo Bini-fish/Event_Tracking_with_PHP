@@ -23,7 +23,8 @@ function require_role(string $role): void
 {
     require_login();
 
-    if (!user_has_role($role)) {
+    $effectiveRole = current_effective_role();
+    if ($effectiveRole !== $role) {
         http_response_code(403);
         echo 'Forbidden';
         exit;
@@ -35,7 +36,13 @@ function require_role(string $role): void
  */
 function require_admin(): void
 {
-    require_role('admin');
+    require_login();
+
+    if (!user_has_role('admin')) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
 }
 
 /**
@@ -53,7 +60,8 @@ function require_admin_or_organizer(): void
 {
     require_login();
 
-    if (!user_has_role('admin') && !user_has_role('organizer')) {
+    $effectiveRole = current_effective_role();
+    if ($effectiveRole !== 'admin' && $effectiveRole !== 'organizer') {
         http_response_code(403);
         echo 'Forbidden';
         exit;
