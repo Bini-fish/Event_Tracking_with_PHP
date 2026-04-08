@@ -57,3 +57,38 @@ Stack: **Core PHP**, **Vanilla JavaScript**, **CSS3**, **MySQL (PDO)**.
 
 This layout is intentionally simple so a student can explain it file-by-file in a viva.
 
+## 4. Database Security Notes (Class Checklist)
+
+This project already uses prepared statements (PDO), password hashing, CSRF protection, output escaping, and secure session cookies.
+
+Additional security controls included:
+
+1. Enforce HTTPS/TLS (configurable)
+
+- Set environment variable `FORCE_HTTPS=1` in production to redirect all HTTP requests to HTTPS.
+- Browser security headers are enabled by default (`ENABLE_SECURITY_HEADERS=1`) and include HSTS when HTTPS is active.
+
+2. SQL monitoring and anomaly logging (configurable)
+
+- Set `ENABLE_SQL_QUERY_LOGGING=1` to log slow/failed SQL statements through PHP error logs.
+- Tune slow-query threshold using `SQL_SLOW_QUERY_MS` (default `500`).
+
+3. Password hash lifecycle management
+
+- Passwords are hashed using `password_hash(..., PASSWORD_DEFAULT)`.
+- On successful login, hashes are automatically rehashed if algorithm/work-factor settings become outdated.
+
+4. Least-privilege database account
+
+Use a dedicated MySQL user for the web app instead of root.
+
+Example (adapt names for your environment):
+
+```sql
+CREATE USER 'city_events_app'@'localhost' IDENTIFIED BY 'ChangeThisStrongPassword!';
+GRANT SELECT, INSERT, UPDATE, DELETE ON city_events.* TO 'city_events_app'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Then set `DB_USER` and `DB_PASS` environment variables for deployment.
+

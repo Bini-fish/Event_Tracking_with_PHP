@@ -194,6 +194,19 @@ if ($loginRole !== null && ($user['role'] ?? '') !== $loginRole) {
 login_user($user);
 clear_login_failures($throttleKey);
 delete_current_remember_me_token();
+
+if (
+    isset($user['id'], $user['password_hash'])
+    && password_needs_rehash((string) $user['password_hash'], PASSWORD_DEFAULT)
+) {
+    try {
+        $newPasswordHash = password_hash((string) $password, PASSWORD_DEFAULT);
+        user_update_password_hash((int) $user['id'], $newPasswordHash);
+    } catch (Throwable $e) {
+        log_exception($e, 'Password rehash update failed');
+    }
+}
+
 if ($rememberMe) {
     issue_remember_me_token((int) $user['id']);
 }

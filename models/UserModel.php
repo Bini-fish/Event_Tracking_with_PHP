@@ -79,6 +79,21 @@ function user_authenticate(string $email, string $plainPassword): ?array
     return $user;
 }
 
+/**
+ * Update stored password hash for a user.
+ */
+function user_update_password_hash(int $userId, string $newPasswordHash): bool
+{
+    $pdo = get_pdo();
+    $stmt = $pdo->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
+    $stmt->execute([
+        ':password_hash' => $newPasswordHash,
+        ':id' => $userId,
+    ]);
+
+    return $stmt->rowCount() > 0;
+}
+
 /** List all users with aggregate counts for admin panel. */
 function user_get_all(?string $roleFilter = null): array
 {

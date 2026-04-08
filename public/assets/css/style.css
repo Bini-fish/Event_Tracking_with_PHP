@@ -144,9 +144,9 @@ h4 {
 
 .header-home-link {
     margin-right: auto;
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -159,9 +159,10 @@ h4 {
 }
 
 .header-home-link img {
-    width: 40px;
-    height: 40px;
+    width: 64px;
+    height: 64px;
     display: block;
+    object-fit: contain;
 }
 
 .main-nav {

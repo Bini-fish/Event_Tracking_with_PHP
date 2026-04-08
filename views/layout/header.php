@@ -49,7 +49,7 @@ $homeAriaLabel = match ($homePage) {
     <div class="container header-inner">
         <?php if (!$isLanding): ?>
         <a class="logo logo--symbol-only header-home-link" href="<?= e(url_for($homePage)) ?>" aria-label="<?= e($homeAriaLabel) ?>">
-            <img src="<?= e(BASE_URL . 'assets/images/new FAVICON.png') ?>" alt="" width="28" height="28">
+            <img src="<?= e(BASE_URL . 'assets/images/new FAVICON.png') ?>" alt="">
         </a>
         <?php endif; ?>
 

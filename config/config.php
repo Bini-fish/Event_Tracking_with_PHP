@@ -7,6 +7,12 @@ declare(strict_types=1);
 const APP_NAME = 'City-Wide Event Tracking System';
 const APP_ENV  = 'development';
 
+// Security flags (override with env vars in deployment).
+defined('FORCE_HTTPS') || define('FORCE_HTTPS', (getenv('FORCE_HTTPS') ?: '0') === '1');
+defined('ENABLE_SECURITY_HEADERS') || define('ENABLE_SECURITY_HEADERS', (getenv('ENABLE_SECURITY_HEADERS') ?: '1') === '1');
+defined('ENABLE_SQL_QUERY_LOGGING') || define('ENABLE_SQL_QUERY_LOGGING', (getenv('ENABLE_SQL_QUERY_LOGGING') ?: '0') === '1');
+defined('SQL_SLOW_QUERY_MS') || define('SQL_SLOW_QUERY_MS', (int) (getenv('SQL_SLOW_QUERY_MS') ?: 500));
+
 // ── Event time constraints ────────────────────────────────────────────────────
 // Minimum event duration in minutes (start → end must be at least this long).
 const MIN_EVENT_DURATION_MINUTES = 30;
@@ -30,7 +36,9 @@ defined('DB_PASS') || define('DB_PASS', getenv('DB_PASS') ?: '');
 // Base URL: always resolves to the public/ folder regardless of which
 // PHP file is the entry point (index.php or an action file).
 if (!defined('BASE_URL')) {
-    $scheme     = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+    $scheme     = $isHttps ? 'https' : 'http';
     $host       = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
     // config.php lives in config/, so ../public is always the web root.
@@ -46,4 +54,39 @@ if (!defined('BASE_URL')) {
 
     define('BASE_URL', $scheme . '://' . $host . $basePath . '/');
 }
+
+/**
+ * Apply transport and browser-level security controls for web requests.
+ */
+function bootstrap_request_security(): void
+{
+    if (PHP_SAPI === 'cli') {
+        return;
+    }
+
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+
+    if (FORCE_HTTPS && !$isHttps) {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        header('Location: https://' . $host . $requestUri, true, 301);
+        exit;
+    }
+
+    if (!ENABLE_SECURITY_HEADERS || headers_sent()) {
+        return;
+    }
+
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+
+    if ($isHttps) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+
+bootstrap_request_security();
 

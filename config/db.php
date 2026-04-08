@@ -6,6 +6,39 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 /**
+ * Optional SQL execution logger for audit and anomaly detection.
+ */
+class LoggedPDOStatement extends PDOStatement
+{
+    protected function __construct()
+    {
+    }
+
+    public function execute(?array $params = null): bool
+    {
+        $startedAt = microtime(true);
+        $ok = parent::execute($params);
+        $elapsedMs = (microtime(true) - $startedAt) * 1000;
+
+        if (ENABLE_SQL_QUERY_LOGGING && ($elapsedMs >= SQL_SLOW_QUERY_MS || !$ok)) {
+            $state = implode(',', $this->errorInfo() ?: []);
+            error_log(
+                sprintf(
+                    'SQL_MONITOR duration_ms=%.2f slow_threshold_ms=%d ok=%s state=%s query=%s',
+                    $elapsedMs,
+                    SQL_SLOW_QUERY_MS,
+                    $ok ? '1' : '0',
+                    $state,
+                    preg_replace('/\s+/', ' ', (string) $this->queryString)
+                )
+            );
+        }
+
+        return $ok;
+    }
+}
+
+/**
  * Get a PDO connection to the application database.
  */
 function get_pdo(): PDO
@@ -27,7 +60,15 @@ function get_pdo(): PDO
         PDO::ATTR_TIMEOUT            => 5,
     ];
 
+    if (ENABLE_SQL_QUERY_LOGGING) {
+        $options[PDO::ATTR_STATEMENT_CLASS] = [LoggedPDOStatement::class];
+    }
+
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+    if (APP_ENV === 'production' && strtolower(DB_USER) === 'root') {
+        error_log('Security warning: production DB connection uses root user. Use a least-privilege database account.');
+    }
 
     return $pdo;
 }
