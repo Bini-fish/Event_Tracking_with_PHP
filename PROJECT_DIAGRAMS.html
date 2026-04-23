@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City-Wide Event Tracking System — Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root { --bg: #0f1117; --card: #1a1d27; --text: #e2e4e9; --accent: #6c63ff; --border: #2a2d3a; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem; }
+  h1 { text-align: center; font-size: 2rem; margin-bottom: .5rem; background: linear-gradient(135deg, #6c63ff, #48c6ef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 3rem; }
+  h2 { color: var(--accent); margin: 3rem 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); font-size: 1.5rem; }
+  h3 { color: #94a3b8; margin: 2rem 0 .75rem; font-size: 1.15rem; }
+  .diagram-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin: 1.5rem 0; overflow-x: auto; }
+  .diagram-box .mermaid { display: flex; justify-content: center; }
+  p { margin: .75rem 0; color: #b0b3be; max-width: 900px; }
+  .toc { background: var(--card); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 2rem; }
+  .toc a { color: var(--accent); text-decoration: none; display: block; padding: 4px 0; }
+  .toc a:hover { text-decoration: underline; }
+  .note { background: #1e293b; border-left: 4px solid var(--accent); padding: 1rem 1.5rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>City-Wide Event Tracking System</h1>
+<p class="subtitle">Architecture Diagrams — Open this file in any browser to view all rendered diagrams</p>
+
+<div class="toc">
+<strong>Table of Contents</strong>
+<a href="#arch">1. System Architecture</a>
+<a href="#get">2. GET Request Lifecycle</a>
+<a href="#post">3. POST Request Lifecycle</a>
+<a href="#er">4. Entity-Relationship Diagram</a>
+<a href="#reg">5. Registration Flow</a>
+<a href="#login">6. Login Flow</a>
+<a href="#logout">7. Logout Sequence</a>
+<a href="#remember">8. Remember-Me Token Flow</a>
+<a href="#visitor">9. Journey: Visitor Registers</a>
+<a href="#rsvp">10. Journey: Attendee RSVPs</a>
+<a href="#organiser">11. Journey: Organiser Manages Events</a>
+<a href="#admin">12. Journey: Admin Manages Platform</a>
+<a href="#feedback">13. Journey: Post-Event Feedback</a>
+<a href="#comments">14. Journey: Comment & Reply</a>
+<a href="#reapproval">15. Event Edit Re-Approval Flow</a>
+<a href="#create">16. Event Creation Pipeline</a>
+<a href="#viewswitch">17. Admin View Switching</a>
+</div>
+
+<!-- ========== PART 1 DIAGRAMS ========== -->
+
+<h2 id="arch">1. High-Level System Architecture</h2>
+<div class="diagram-box"><pre class="mermaid">
+graph TB
+    subgraph Browser["Browser - Client"]
+        USER["User"]
+    end
+    subgraph WebServer["Web Server"]
+        subgraph PublicDir["public/"]
+            FC["index.php - Front Controller"]
+            ACTIONS["actions/ - POST Handlers"]
+        end
+        subgraph AppLayer["Application Layer"]
+            CONFIG["config/ - config, db, routes"]
+            INCLUDES["includes/ - session, auth_guard, policy, validation, upload, helpers, rate_limit"]
+            MODELS["models/ - User, Event, Rsvp, Comment, Feedback, RememberToken"]
+        end
+        subgraph ViewLayer["Presentation Layer"]
+            VIEWS["views/ - layout, pages, partials"]
+        end
+    end
+    subgraph DataLayer["Data Layer"]
+        DB["MySQL 8.0+ city_events"]
+        FS["File System public/uploads/"]
+    end
+    USER -->|"GET ?page=X"| FC
+    USER -->|"POST form"| ACTIONS
+    FC --> CONFIG
+    FC --> INCLUDES
+    FC --> VIEWS
+    ACTIONS --> CONFIG
+    ACTIONS --> INCLUDES
+    ACTIONS --> MODELS
+    MODELS --> DB
+    INCLUDES --> MODELS
+    VIEWS --> INCLUDES
+    ACTIONS -->|"redirect"| FC
+    ACTIONS --> FS
+</pre></div>
+
+<h2 id="get">2. GET Request Lifecycle (Page View)</h2>
+<div class="diagram-box"><pre class="mermaid">
+sequenceDiagram
+    participant B as Browser
+    participant FC as index.php
+    participant S as session.php
+    participant R as routes.php
+    participant V as View
+    participant M as Model
+    participant DB as MySQL
+    B->>FC: GET /index.php?page=event_feed
+    FC->>S: Start session, check remember-me
+    S-->>FC: Session ready
+    FC->>R: Look up page in routes
+    R-->>FC: views/pages/event_feed.php
+    FC->>V: require header.php
+    FC->>V: require flash_messages.php
+    FC->>V: require event_feed.php
+    V->>M: event_get_approved_events()
+    M->>DB: SELECT FROM events WHERE is_verified=1
+    DB-->>M: Result rows
+    M-->>V: Array of events
+    V-->>B: Rendered HTML
+    FC->>V: require footer.php
+</pre></div>
+
+<h2 id="post">3. POST Request Lifecycle (Form Action)</h2>
+<div class="diagram-box"><pre class="mermaid">
+sequenceDiagram
+    participant B as Browser
+    participant A as Action Handler
+    participant S as session.php
+    participant V as validation.php
+    participant P as policy.php
+    participant M as Model
+    participant DB as MySQL
+    B->>A: POST /actions/events/create_event.php
+    A->>S: Verify session + CSRF token
+    A->>P: require_organizer + can_create_event
+    P-->>A: Authorised
+    A->>V: Validate all fields
+    V-->>A: Errors array
+    A->>M: event_create
+    M->>DB: INSERT INTO events
+    DB-->>M: New event ID
+    M-->>A: Event ID
+    A->>S: set_flash success
+    A->>B: 302 Redirect to dashboard
+</pre></div>
+
+<h2 id="er">4. Entity-Relationship Diagram</h2>
+<div class="diagram-box"><pre class="mermaid">
+erDiagram
+    users ||--o{ events : "organizes"
+    users ||--o{ rsvps : "submits"
+    users ||--o{ comments : "writes"
+    users ||--o{ feedback : "gives"
+    users ||--o{ remember_tokens : "has"
+    events ||--o{ rsvps : "receives"
+    events ||--o{ comments : "has"
+    events ||--o{ feedback : "collects"
+    comments ||--o{ comments : "has replies"
+    users {
+        INT id PK
+        VARCHAR name
+        VARCHAR email UK
+        VARCHAR password_hash
+        ENUM role
+        DATETIME created_at
+    }
+    events {
+        INT id PK
+        INT organizer_id FK
+        VARCHAR title
+        TEXT description
+        VARCHAR image_path
+        VARCHAR location
+        VARCHAR category
+        DATETIME event_date
+        DATETIME event_end
+        INT capacity
+        TINYINT is_verified
+        DATETIME created_at
+    }
+    rsvps {
+        INT id PK
+        INT event_id FK
+        INT user_id FK
+        ENUM status
+        DATETIME approved_at
+        INT approved_by FK
+        DATETIME created_at
+    }
+    comments {
+        INT id PK
+        INT event_id FK
+        INT user_id FK
+        TEXT body
+        INT parent_comment_id FK
+        DATETIME created_at
+    }
+    feedback {
+        INT id PK
+        INT event_id FK
+        INT user_id FK
+        TINYINT rating
+        TEXT comment
+        DATETIME created_at
+    }
+    remember_tokens {
+        INT id PK
+        INT user_id FK
+        VARCHAR selector UK
+        CHAR validator_hash
+        DATETIME expires_at
+    }
+</pre></div>
+
+<!-- ========== PART 2 DIAGRAMS ========== -->
+
+<h2 id="reg">5. Registration Flow</h2>
+<div class="diagram-box"><pre class="mermaid">
+graph LR
+    R1["User fills form"] --> R2["POST register.php"]
+    R2 --> R3["CSRF check"]
+    R3 --> R4["Validate all fields"]
+    R4 --> R5["Check email uniqueness"]
+    R5 --> R6["password_hash"]
+    R6 --> R7["INSERT INTO users"]
+    R7 --> R8["Auto-login via login_user"]
+    R8 --> R9["Redirect to dashboard/feed"]
+</pre></div>
+
+<h2 id="login">6. Login Flow</h2>
+<div class="diagram-box"><pre class="mermaid">
+graph LR
+    L1["User submits credentials"] --> L2["POST login.php"]
+    L2 --> L3["CSRF check"]
+    L3 --> L4["Validate inputs"]
+    L4 --> L5["Throttle check - 5 attempts / 15 min"]
+    L5 --> L6["user_find_by_email"]
+    L6 --> L7["password_verify"]
+    L7 --> L8["Role validation"]
+    L8 --> L9["login_user - session_regenerate_id"]
+    L9 --> L10["Optional: issue remember-me token"]
+    L10 --> L11["Redirect by role"]
+</pre></div>
+
+<h2 id="logout">7. Logout Sequence</h2>
+<div class="diagram-box"><pre class="mermaid">
+sequenceDiagram
+    participant B as Browser
+    participant A as logout.php
+    participant S as Session
+    participant DB as MySQL
+    B->>A: POST with CSRF token
+    A->>A: Verify CSRF token
+    A->>DB: Delete remember-me token by selector
+    A->>S: Clear remember-me cookie
+    A->>S: Wipe session data
+    A->>S: Delete session cookie
+    A->>S: session_destroy
+    A->>B: 302 Redirect to event_feed
+</pre></div>
+
+<h2 id="remember">8. Remember-Me Split Token Flow</h2>
+<div class="diagram-box"><pre class="mermaid">
+sequenceDiagram
+    participant B as Browser
+    participant S as Server
+    participant DB as MySQL
+    Note over B,DB: Token Issuance
+    S->>S: selector = random_bytes 8 hex
+    S->>S: validator = random_bytes 32 hex
+    S->>S: validatorHash = sha256 validator
+    S->>DB: INSERT remember_tokens
+    S->>B: Set-Cookie remember_me=selector:validator
+    Note over B,DB: Auto-Login on Next Visit
+    B->>S: Request with remember_me cookie
+    S->>S: Split cookie into selector + validator
+    S->>DB: SELECT FROM remember_tokens WHERE selector = ?
+    DB-->>S: Token row with validator_hash
+    S->>S: hash_equals sha256 validator vs stored_hash
+    S->>S: Check expiry
+    S->>DB: DELETE old token - rotation
+    S->>S: Issue NEW token
+    S->>S: login_user with fetched user
+    S->>B: Set-Cookie with new token
+</pre></div>
+
+<h2 id="visitor">9. Journey: Visitor Discovers and Registers</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Visitor arrives at landing page"] --> B{"Already registered?"}
+    B -->|No| C["Clicks Register"]
+    B -->|Yes| D["Clicks Login"]
+    C --> E["Fills registration form"]
+    E --> F{"Client-side validation passes?"}
+    F -->|No| G["Shows inline errors"]
+    G --> E
+    F -->|Yes| H["POST to register.php"]
+    H --> I{"Server validation passes?"}
+    I -->|No| J["Flash error + old input preserved"]
+    J --> E
+    I -->|Yes| K{"Email already exists?"}
+    K -->|Yes| L["Flash: Account exists"]
+    L --> E
+    K -->|No| M["password_hash then INSERT user"]
+    M --> N["Auto-login via login_user"]
+    N --> O{"Selected role?"}
+    O -->|Attendee| P["Redirect to Event Feed"]
+    O -->|Organizer| Q["Redirect to Dashboard"]
+</pre></div>
+
+<h2 id="rsvp">10. Journey: Attendee RSVPs to an Event</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Attendee browses Event Feed"] --> B["Clicks event card"]
+    B --> C["Views Event Detail page"]
+    C --> D{"Event approved?"}
+    D -->|No| E["RSVP button hidden"]
+    D -->|Yes| F{"Already RSVPed?"}
+    F -->|Yes| G["Shows current RSVP status"]
+    F -->|No| H{"Seats remaining?"}
+    H -->|No| I["Event Full badge shown"]
+    H -->|Yes| J["Clicks RSVP button"]
+    J --> K["POST to rsvp.php"]
+    K --> L{"CSRF + auth valid?"}
+    L -->|No| M["Flash error redirect"]
+    L -->|Yes| N{"Rate limit OK?"}
+    N -->|No| O["Flash: Too many attempts"]
+    N -->|Yes| P{"Time conflict?"}
+    P -->|"Yes, not confirmed"| Q["Redirect with conflict modal"]
+    Q --> R{"User confirms?"}
+    R -->|No| S["Cancel"]
+    R -->|Yes| T["Re-POST with conflict_confirmed=1"]
+    P -->|No conflict| U["INSERT RSVP status=pending"]
+    T --> U
+    U --> V["Flash: RSVP submitted pending approval"]
+</pre></div>
+
+<h2 id="organiser">11. Journey: Organiser Creates and Manages an Event</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Organiser logs in to Dashboard"] --> B["Sees Create Event form"]
+    B --> C["Fills all event fields"]
+    C --> D["POST to create_event.php"]
+    D --> E{"All validations pass?"}
+    E -->|No| F["ALL errors collected at once"]
+    F --> C
+    E -->|Yes| G{"Start before End and duration ok?"}
+    G -->|No| H["Flash cross-field error"]
+    H --> C
+    G -->|Yes| I{"Overlaps organisers other events?"}
+    I -->|Yes| J["Warning flash - non-blocking"]
+    I -->|No| K["handle_image_upload"]
+    J --> K
+    K --> L["INSERT event is_verified=0"]
+    L --> M["Flash: Event submitted pending approval"]
+    M --> N["Event on Dashboard with Pending badge"]
+    N --> O["Admin approves event"]
+    O --> P["Event visible in public feed"]
+    P --> Q["Attendees start RSVPing"]
+    Q --> R["Organiser sees pending RSVPs"]
+    R --> S{"Approve or Reject?"}
+    S -->|Approve| T["rsvp_approve with row lock"]
+    S -->|Reject| U["rsvp_reject"]
+</pre></div>
+
+<h2 id="admin">12. Journey: Admin Manages the Platform</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Admin logs in to Admin Events"] --> B{"What to do?"}
+    B -->|Approve Events| C["Views pending events list"]
+    C --> D["Clicks Approve"]
+    D --> E["POST to toggle_approval.php"]
+    E --> F["event_set_verified true"]
+    F --> G["Event now public"]
+    B -->|Manage Users| H["Navigates to User Management"]
+    H --> I["Views all users with stats"]
+    I --> J{"Action?"}
+    J -->|Add User| K["Fills add-user form"]
+    K --> L["POST to add_user.php"]
+    J -->|Change Role| M["Select new role"]
+    M --> N["POST to update_user_role.php"]
+    J -->|Delete User| O["Clicks delete"]
+    O --> P["POST to delete_user.php with cascade"]
+    B -->|Switch View| Q["Switches to Organizer view"]
+    Q --> R["Sees organizer dashboard"]
+    R --> S["Switch to Attendee view"]
+    S --> T["Sees event feed as attendee"]
+</pre></div>
+
+<h2 id="feedback">13. Journey: Post-Event Feedback</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Event has ended"] --> B["Approved attendee visits Event Detail"]
+    B --> C{"Already submitted feedback?"}
+    C -->|Yes| D["Shows Already submitted message"]
+    C -->|No| E["Feedback form appears - star rating 1-5"]
+    E --> F["Submits feedback"]
+    F --> G["POST to submit_feedback.php"]
+    G --> H{"Checks pass?"}
+    H -->|"Event not ended"| I["Flash: Wait until event ends"]
+    H -->|"Not approved attendee"| J["Flash: Only confirmed attendees"]
+    H -->|"Already submitted"| K["Flash: Already submitted"]
+    H -->|"Rating invalid"| L["Flash: Select 1-5"]
+    H -->|All pass| M["INSERT INTO feedback"]
+    M --> N["Flash: Thank you!"]
+    N --> O["Feedback summary updates"]
+</pre></div>
+
+<h2 id="comments">14. Journey: Comment and Reply System</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["User on Event Detail page"] --> B{"Event has ended?"}
+    B -->|"No + regular attendee"| C["Comment form disabled"]
+    B -->|"No + organiser/admin"| D["Can post comments"]
+    B -->|Yes| E["Comment form visible"]
+    D --> F["Writes comment"]
+    E --> F
+    F --> G["POST to comment.php"]
+    G --> H{"Validation passes?"}
+    H -->|No| I["Flash error redirect"]
+    H -->|Yes| J{"Is it a reply?"}
+    J -->|"No - top-level"| K["comment_add"]
+    J -->|"Yes - reply"| L{"User is organiser/admin?"}
+    L -->|No| M["Flash: Only organiser can reply"]
+    L -->|Yes| N["Verify parent comment exists"]
+    N --> O["comment_add_reply"]
+    K --> P["Comment appears in thread"]
+    O --> P
+</pre></div>
+
+<h2 id="reapproval">15. Event Edit Re-Approval Flow</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Organiser edits an approved event"] --> B["POST to update_event.php"]
+    B --> C{"Full validation passes?"}
+    C -->|No| D["All errors collected + old input preserved"]
+    C -->|Yes| E["Row locked with SELECT FOR UPDATE"]
+    E --> F{"Can edit? owner or admin"}
+    F -->|No| G["403 Forbidden"]
+    F -->|Yes| H{"New image uploaded?"}
+    H -->|Yes| I["Upload new then delete old"]
+    H -->|No| J["Keep existing image"]
+    I --> K{"Editor is admin?"}
+    J --> K
+    K -->|Yes| L["Event stays approved"]
+    K -->|No| M["is_verified reset to 0 needs re-approval"]
+    L --> N["UPDATE events"]
+    M --> N
+    N --> O["Flash: success message"]
+</pre></div>
+
+<!-- ========== PART 3 DIAGRAMS ========== -->
+
+<h2 id="create">16. Event Creation Pipeline</h2>
+<div class="diagram-box"><pre class="mermaid">
+flowchart TD
+    A["Organiser submits form"] --> B["require_organizer + can_create_event"]
+    B --> C["CSRF token verified"]
+    C --> D["Read and trim all inputs"]
+    D --> E["Preserve old input immediately"]
+    E --> F["collect_validation_errors runs ALL checks"]
+    F --> G{"Errors?"}
+    G -->|Yes| H["Flash EVERY error message and redirect"]
+    G -->|No| I["Cross-field: start before end?"]
+    I --> J["Cross-field: duration at least 30 min?"]
+    J --> K["Organiser buffer overlap check"]
+    K --> L["handle_image_upload centralised"]
+    L --> M["event_create INSERT"]
+    M --> N["Flash success redirect to dashboard"]
+</pre></div>
+
+<h2 id="viewswitch">17. Admin View Switching State Diagram</h2>
+<div class="diagram-box"><pre class="mermaid">
+stateDiagram-v2
+    [*] --> AdminView : Admin logs in
+    AdminView --> OrganizerView : Switch to Organizer
+    AdminView --> AttendeeView : Switch to Attendee
+    OrganizerView --> AdminView : Back to Admin
+    OrganizerView --> AttendeeView : Switch to Attendee
+    AttendeeView --> AdminView : Back to Admin
+    AttendeeView --> OrganizerView : Switch to Organizer
+</pre></div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#6c63ff',
+      primaryTextColor: '#e2e4e9',
+      primaryBorderColor: '#4a4690',
+      lineColor: '#6c63ff',
+      secondaryColor: '#2a2d3a',
+      tertiaryColor: '#1a1d27',
+      fontSize: '14px'
+    },
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true }
+  });
+</script>
+</body>
+</html>
